@@ -1,0 +1,17 @@
+[package]
+name = "capture-card-viewer"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.102"
+cpal = "0.17.3"
+directories = "6.0.0"
+eframe = "0.34.2"
+log = "0.4.29"
+nokhwa = { version = "0.10.10", features = ["input-native"] }
+ringbuf = "0.5.0"
+rubato = "2.0.0"
+serde = { version = "1.0.228", features = ["derive"] }
+simplelog = "0.12.2"
+toml = "1.1.2"
