@@ -27,7 +27,7 @@ fn main() {
     };
 
     log::info!(
-        "Starting {} v{}.\n{}",
+        "Starting {} v{}.\n- {}",
         env!("CARGO_PKG_NAME"),
         env!("CARGO_PKG_VERSION"),
         log_status
