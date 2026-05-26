@@ -5,8 +5,14 @@ use directories::BaseDirs;
 
 use crate::errors::fatal_error;
 
+mod app;
+mod audio;
 mod errors;
 mod logger;
+mod settings;
+mod state;
+mod ui;
+mod video;
 
 fn main() {
     let data_dir: PathBuf = BaseDirs::new()

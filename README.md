@@ -24,6 +24,7 @@ src/
  ├─ app.rs               ← core App struct; implements eframe::App
  ├─ state.rs             ← AppState enum and transitions
  ├─ settings.rs          ← Settings struct; load, save, deserialize
+ ├─ logger.rs            ← Simplelog initialization
  ├─ errors.rs            ← app-wide error types
  ├─ video.rs             ← video thread; grab frames, decode to RGB, send to GUI
  │
@@ -38,7 +39,7 @@ src/
  └─ audio/
      ├─ mod.rs           ← declares and re-exports the audio submodules
      ├─ config.rs        ← AudioConfig struct; device names, volume, output selection
-     ├─ audio.rs         ← device discovery; find input/output devices from config
+     ├─ io.rs            ← device discovery; find input/output devices from config
      ├─ processing.rs    ← resampling, channel conversion, volume scaling
      └─ playback.rs      ← creates streams, owns ring buffer, runs input→output loop
 ```
@@ -107,6 +108,14 @@ src/
 - `impl Settings`
   - `load() -> Result<Settings>` — locate file via `directories`, read, deserialize with `toml` + `serde`, delete and return `Err(AppError::SettingsCorrupt)` if deserialization fails
   - `save(&self) -> Result<()>` — serialize to `toml` and write to OS config dir
+
+### logger.rs
+
+- `init(data_dir: &Path) -> Result<Option<PathBuf>>`
+  - Attempts to create a log file at `data_dir/app.log`
+  - If file creation succeeds → initializes a `CombinedLogger` with both a `TermLogger` (Debug level) and a `WriteLogger` (Info level), returns `Ok(Some(log_path))`
+  - If file creation fails → falls back to `TermLogger` only, logs a warning, returns `Ok(None)`
+  - Returns `Err` only if logger initialization itself fails
 
 ### errors.rs
 
@@ -200,7 +209,7 @@ src/
 - `impl AudioConfig`
   - `from_settings(settings: &Settings, volume: Arc<Mutex<f32>>) -> Self` — constructs an `AudioConfig` from the relevant fields of `Settings`, takes the shared volume handle
 
-### audio/audio.rs
+### audio/io.rs
 
 - `query_audio_inputs() -> Vec<String>` — query all available audio input devices via cpal
 - `query_audio_outputs() -> Vec<String>` — query all available audio output devices via cpal

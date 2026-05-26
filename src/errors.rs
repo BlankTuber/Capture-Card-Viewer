@@ -9,6 +9,7 @@ pub enum AppError {
     AudioDeviceNotFound,
     VideoStreamFailed,
     AudioStreamFailed,
+    AudioSettingsCorrupt,
 }
 
 impl std::error::Error for AppError {}
@@ -23,6 +24,7 @@ impl Display for AppError {
             AppError::AudioDeviceNotFound => "Could not find audio device",
             AppError::VideoStreamFailed => "Video stream has failed",
             AppError::AudioStreamFailed => "Audio stream has failed",
+            AppError::AudioSettingsCorrupt => "Audio settings were not found or are corrupt",
         };
         write!(f, "{}", readable_error)
     }
