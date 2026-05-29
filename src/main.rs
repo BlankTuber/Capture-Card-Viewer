@@ -1,10 +1,12 @@
 use std::{
     fs::create_dir_all,
     path::PathBuf,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, OnceLock},
 };
 
 use anyhow::Context;
+use arc_swap::ArcSwapOption;
+use cpal::traits::{DeviceTrait, HostTrait};
 use directories::BaseDirs;
 use eframe::egui;
 
@@ -55,12 +57,18 @@ fn main() {
     let video_devices = query_video_devices();
     let audio_inputs = query_audio_inputs(&host);
     let audio_outputs = query_audio_outputs(&host);
+    let default_audio_output_id = host
+        .default_output_device()
+        .and_then(|d| d.id().ok())
+        .map(|id| id.to_string());
 
-    let latest_frame: Arc<Mutex<Option<RgbFrame>>> = Arc::new(Mutex::new(None));
+    let latest_frame: Arc<ArcSwapOption<RgbFrame>> = Arc::new(ArcSwapOption::empty());
+    let repaint_ctx: Arc<OnceLock<egui::Context>> = Arc::new(OnceLock::new());
 
     let app = match Settings::load(&data_dir) {
         Ok(settings) => {
-            let (app_state, volume) = start_loading(&settings, latest_frame.clone());
+            let (app_state, volume) =
+                start_loading(&settings, latest_frame.clone(), repaint_ctx.clone());
             let init = AppInit {
                 settings,
                 video_devices,
@@ -69,6 +77,8 @@ fn main() {
                 volume,
                 data_dir,
                 latest_frame,
+                repaint_ctx,
+                default_audio_output_id,
             };
 
             App::new(app_state, init)
@@ -84,6 +94,8 @@ fn main() {
                 volume,
                 data_dir,
                 latest_frame,
+                repaint_ctx,
+                default_audio_output_id,
             };
 
             App::new(AppState::Initial, init)

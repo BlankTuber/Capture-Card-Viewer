@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.102"
+arc-swap = "1.9.1"
 cpal = "0.17.3"
 directories = "6.0.0"
 eframe = "0.34.2"

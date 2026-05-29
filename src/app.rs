@@ -1,8 +1,9 @@
 use std::{
     path::PathBuf,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, OnceLock},
 };
 
+use arc_swap::ArcSwapOption;
 use eframe::egui;
 
 use crate::{settings::Settings, state::AppState, ui, video::RgbFrame};
@@ -19,7 +20,9 @@ pub struct App {
     pub volume: Arc<Mutex<f32>>,
     pub data_dir: PathBuf,
     pub current_frame: Option<egui::TextureHandle>,
-    pub latest_frame: Arc<Mutex<Option<RgbFrame>>>,
+    pub latest_frame: Arc<ArcSwapOption<RgbFrame>>,
+    pub repaint_ctx: Arc<OnceLock<egui::Context>>,
+    pub default_audio_output_id: Option<String>,
 }
 
 pub struct AppInit {
@@ -29,7 +32,9 @@ pub struct AppInit {
     pub audio_outputs: Vec<(String, String)>,
     pub volume: Arc<Mutex<f32>>,
     pub data_dir: PathBuf,
-    pub latest_frame: Arc<Mutex<Option<RgbFrame>>>,
+    pub latest_frame: Arc<ArcSwapOption<RgbFrame>>,
+    pub repaint_ctx: Arc<OnceLock<egui::Context>>,
+    pub default_audio_output_id: Option<String>,
 }
 
 impl App {
@@ -47,6 +52,8 @@ impl App {
             data_dir: init.data_dir,
             current_frame: None,
             latest_frame: init.latest_frame,
+            repaint_ctx: init.repaint_ctx,
+            default_audio_output_id: init.default_audio_output_id,
         }
     }
 
@@ -100,6 +107,7 @@ impl App {
 
 impl eframe::App for App {
     fn logic(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
+        self.repaint_ctx.get_or_init(|| ctx.clone());
         let current_fullscreen = ctx.input(|i| i.viewport().fullscreen.unwrap_or(false));
         let current_maximized = ctx.input(|i| i.viewport().maximized.unwrap_or(false));
 
@@ -136,5 +144,18 @@ impl eframe::App for App {
 
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         ui::render(self, ui);
+    }
+}
+
+impl Drop for App {
+    fn drop(&mut self) {
+        self.settings.fullscreen = self.is_fullscreen;
+        self.settings.volume = *self.volume.lock().unwrap();
+
+        if let Err(e) = self.settings.save(&self.data_dir) {
+            log::error!("Failed to save settings on exit: {e}");
+        } else {
+            log::info!("Settings saved on exit!");
+        }
     }
 }

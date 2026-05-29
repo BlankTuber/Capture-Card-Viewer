@@ -1,7 +1,14 @@
 use std::{
-    sync::{Arc, Mutex, mpsc::Receiver},
+    sync::{
+        Arc, Mutex, OnceLock,
+        atomic::{AtomicBool, Ordering},
+        mpsc::Receiver,
+    },
     thread::{self, JoinHandle},
 };
+
+use arc_swap::ArcSwapOption;
+use eframe::egui;
 
 use crate::{
     audio::{AudioStreams, config::AudioConfig},
@@ -13,6 +20,7 @@ use crate::{
 pub struct LoadingResult {
     pub video_thread: JoinHandle<()>,
     pub audio_streams: AudioStreams,
+    pub stop_flag: Arc<AtomicBool>,
 }
 
 pub enum AppState {
@@ -24,19 +32,24 @@ pub enum AppState {
     Playing {
         video_thread: JoinHandle<()>,
         audio_streams: AudioStreams,
+        stop_flag: Arc<AtomicBool>,
     },
     Error(String),
 }
 
 impl AppState {
     pub fn transition(&mut self, next: AppState) {
+        if let AppState::Playing { stop_flag, .. } = &*self {
+            stop_flag.store(true, Ordering::Relaxed);
+        }
         *self = next
     }
 }
 
 pub fn start_loading(
     settings: &Settings,
-    latest_frame: Arc<Mutex<Option<RgbFrame>>>,
+    latest_frame: Arc<ArcSwapOption<RgbFrame>>,
+    repaint_ctx: Arc<OnceLock<egui::Context>>,
 ) -> (AppState, Arc<Mutex<f32>>) {
     let volume = Arc::new(Mutex::new(settings.volume));
     let volume_clone = Arc::clone(&volume);
@@ -52,8 +65,12 @@ pub fn start_loading(
             let video_name = video_name.ok_or(AppError::VideoDeviceNotFound)?;
             let audio_input = audio_input.ok_or(AppError::AudioDeviceNotFound)?;
 
+            let stop_flag = Arc::new(AtomicBool::new(false));
+            let stop_for_video = Arc::clone(&stop_flag);
+
             let camera_index = find_video_device(&video_name)?;
-            let video_thread = spawn_video_thread(camera_index, latest_frame)?;
+            let video_thread =
+                spawn_video_thread(camera_index, latest_frame, stop_for_video, repaint_ctx)?;
 
             let audio_config = AudioConfig {
                 input_device: audio_input,
@@ -65,6 +82,7 @@ pub fn start_loading(
             Ok(LoadingResult {
                 video_thread,
                 audio_streams,
+                stop_flag,
             })
         })();
 

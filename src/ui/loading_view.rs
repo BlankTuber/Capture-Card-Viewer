@@ -29,6 +29,7 @@ pub fn render(app: &mut App, ui: &mut egui::Ui) {
             app.state.transition(AppState::Playing {
                 video_thread: result.video_thread,
                 audio_streams: result.audio_streams,
+                stop_flag: result.stop_flag
             });
         }
         Some(Err(e)) => {

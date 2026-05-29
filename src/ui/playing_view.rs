@@ -3,10 +3,9 @@ use eframe::egui;
 use crate::app::App;
 
 pub fn render(app: &mut App, ui: &mut egui::Ui) {
-    let next_frame = app.latest_frame.lock().unwrap().clone();
-
-    if let Some((w, h, data)) = next_frame {
-        let color_image = egui::ColorImage::from_rgb([w as usize, h as usize], &data);
+    if let Some(frame) = app.latest_frame.swap(None) {
+        let (w, h, data) = &*frame;
+        let color_image = egui::ColorImage::from_rgb([*w as usize, *h as usize], data);
 
         if let Some(texture) = &mut app.current_frame {
             texture.set(color_image, egui::TextureOptions::LINEAR);
@@ -17,8 +16,6 @@ pub fn render(app: &mut App, ui: &mut egui::Ui) {
                 egui::TextureOptions::LINEAR,
             ));
         }
-
-        ui.ctx().request_repaint();
     }
 
     if let Some(texture) = &app.current_frame {
@@ -36,7 +33,6 @@ pub fn render(app: &mut App, ui: &mut egui::Ui) {
             ui.spinner();
             ui.label("Waiting for first frame...");
         });
-
         ui.ctx().request_repaint();
     }
 }

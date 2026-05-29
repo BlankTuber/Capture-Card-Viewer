@@ -56,10 +56,10 @@ pub fn render(app: &mut App, ui: &mut egui::Ui) {
     }
 
     if app.show_settings {
-        settings_view::render(app, ui);
+        settings_view::render(app, ui.ctx());
     }
 
     if app.runtime_error.is_some() {
-        error_view::render_modal(app, ui);
+        error_view::render_modal(app, ui.ctx());
     }
 }

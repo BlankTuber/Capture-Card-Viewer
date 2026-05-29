@@ -103,6 +103,9 @@ impl Processor {
         if in_channels == out_channels {
             let len = frame_count * in_channels;
             self.channel_buf[..len].copy_from_slice(&resampled_data[..len]);
+            for sample in &mut self.channel_buf[..len] {
+                *sample *= volume;
+            }
             return &self.channel_buf[..len];
         }
 

@@ -1,5 +1,4 @@
 use crate::{app::App, errors::AppError, state::start_loading};
-use cpal::traits::{DeviceTrait, HostTrait};
 use eframe::egui;
 
 pub fn render(app: &mut App, ctx: &egui::Context) {
@@ -128,10 +127,6 @@ pub fn render(app: &mut App, ctx: &egui::Context) {
                             .strong(),
                     );
 
-                    let system_default_id = cpal::default_host()
-                        .default_output_device()
-                        .and_then(|d| d.id().ok());
-
                     let selected_audio_out_name = if app.settings.audio_output.is_empty() {
                         "Use System Default".to_string()
                     } else {
@@ -157,8 +152,8 @@ pub fn render(app: &mut App, ctx: &egui::Context) {
                             for (name, id) in &app.available_audio_outputs {
                                 let mut label = name.clone();
 
-                                if let Some(default_id) = &system_default_id
-                                    && default_id.to_string() == id.as_str()
+                                if let Some(default_id) = &app.default_audio_output_id
+                                    && default_id == id.as_str()
                                 {
                                     label.push_str(" (Default)");
                                 }
@@ -243,6 +238,9 @@ pub fn render(app: &mut App, ctx: &egui::Context) {
                 );
 
                 if close_btn.clicked() {
+                    app.settings.video_input = initial_video_input.clone();
+                    app.settings.audio_input = initial_audio_input.clone();
+                    app.settings.audio_output = initial_audio_output.clone();
                     *app.volume.lock().unwrap() = app.settings.volume;
                     app.show_settings = false;
                 }
@@ -253,8 +251,13 @@ pub fn render(app: &mut App, ctx: &egui::Context) {
                     if app.settings.video_input.is_none() || app.settings.audio_input.is_none() {
                         app.settings.video_input = initial_video_input.clone();
                         app.settings.audio_input = initial_audio_input.clone();
-                        log::info!("Need to select all inputs!");
                         app.runtime_error = Some(AppError::MissingEntries.to_string());
+                        return;
+                    }
+
+                    if let Err(e) = app.settings.save(&app.data_dir) {
+                        log::error!("Failed to save settings: {e}");
+                        app.runtime_error = Some(AppError::SettingsSaveFailed.to_string());
                         return;
                     }
 
@@ -262,12 +265,11 @@ pub fn render(app: &mut App, ctx: &egui::Context) {
                         || app.settings.audio_input != initial_audio_input
                         || app.settings.audio_output != initial_audio_output
                     {
-                        if let Err(e) = app.settings.save(&app.data_dir) {
-                            log::error!("Failed to save settings: {e}");
-                            app.runtime_error = Some(AppError::SettingsSaveFailed.to_string());
-                        }
-                        let (loading_state, volume) =
-                            start_loading(&app.settings, app.latest_frame.clone());
+                        let (loading_state, volume) = start_loading(
+                            &app.settings,
+                            app.latest_frame.clone(),
+                            app.repaint_ctx.clone(),
+                        );
                         app.state.transition(loading_state);
                         app.volume = volume;
                     }
