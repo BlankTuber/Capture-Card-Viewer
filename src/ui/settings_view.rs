@@ -266,7 +266,8 @@ pub fn render(app: &mut App, ctx: &egui::Context) {
                             log::error!("Failed to save settings: {e}");
                             app.runtime_error = Some(AppError::SettingsSaveFailed.to_string());
                         }
-                        let (loading_state, volume) = start_loading(&app.settings);
+                        let (loading_state, volume) =
+                            start_loading(&app.settings, app.latest_frame.clone());
                         app.state.transition(loading_state);
                         app.volume = volume;
                     }

@@ -46,28 +46,20 @@ pub fn render(app: &mut App, ui: &mut egui::Ui) {
             app.show_settings = false;
             initial_view::render(app, ui)
         }
-        AppState::Loading { .. } =>
-        /* loading_view::render(app, ui) */
-        {
-            log::info!("Does nothign right now!")
+        AppState::Loading { .. } => {
+            loading_view::render(app, ui);
         }
-        AppState::Playing { .. } =>
-        /* playing_view::render(app, ui) */
-        {
-            log::info!("Does nothign right now!")
+        AppState::Playing { .. } => {
+            playing_view::render(app, ui);
         }
-        AppState::Error(_) =>
-        /* error_view::render(app, ui) */
-        {
-            log::info!("Does nothign right now!")
-        }
+        AppState::Error(_) => error_view::render(app, ui),
     }
 
     if app.show_settings {
         settings_view::render(app, ui);
     }
 
-    // if app.runtime_error.is_some() {
-    //     error_view::render_modal(app, ui);
-    // }
+    if app.runtime_error.is_some() {
+        error_view::render_modal(app, ui);
+    }
 }

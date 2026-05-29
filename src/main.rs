@@ -9,12 +9,12 @@ use directories::BaseDirs;
 use eframe::egui;
 
 use crate::{
-    app::App,
+    app::{App, AppInit},
     audio::io::{query_audio_inputs, query_audio_outputs},
     errors::fatal_error,
     settings::Settings,
     state::{AppState, start_loading},
-    video::query_video_devices,
+    video::{RgbFrame, query_video_devices},
 };
 
 mod app;
@@ -56,31 +56,37 @@ fn main() {
     let audio_inputs = query_audio_inputs(&host);
     let audio_outputs = query_audio_outputs(&host);
 
+    let latest_frame: Arc<Mutex<Option<RgbFrame>>> = Arc::new(Mutex::new(None));
+
     let app = match Settings::load(&data_dir) {
         Ok(settings) => {
-            let (app_state, volume) = start_loading(&settings);
-            App::new(
-                app_state,
+            let (app_state, volume) = start_loading(&settings, latest_frame.clone());
+            let init = AppInit {
                 settings,
                 video_devices,
                 audio_inputs,
                 audio_outputs,
                 volume,
                 data_dir,
-            )
+                latest_frame,
+            };
+
+            App::new(app_state, init)
         }
         Err(_) => {
             let settings = Settings::default();
             let volume = Arc::new(Mutex::new(settings.volume));
-            App::new(
-                AppState::Initial,
+            let init = AppInit {
                 settings,
                 video_devices,
                 audio_inputs,
                 audio_outputs,
                 volume,
                 data_dir,
-            )
+                latest_frame,
+            };
+
+            App::new(AppState::Initial, init)
         }
     };
 

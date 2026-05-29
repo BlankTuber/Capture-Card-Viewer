@@ -140,7 +140,8 @@ pub fn render(app: &mut App, ui: &mut egui::Ui) {
                 app.runtime_error = Some(AppError::MissingEntries.to_string());
             } else {
                 log::info!("Continiuing to loading state");
-                let (loading_state, volume_mutex) = start_loading(&app.settings);
+                let (loading_state, volume_mutex) =
+                    start_loading(&app.settings, app.latest_frame.clone());
                 if let Err(e) = app.settings.save(&app.data_dir) {
                     log::error!("Failed to save settings: {e}");
                     app.runtime_error = Some(AppError::SettingsSaveFailed.to_string());

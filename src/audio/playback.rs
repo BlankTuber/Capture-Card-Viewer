@@ -25,6 +25,7 @@ use crate::{
     errors::AppError,
 };
 
+#[allow(dead_code)]
 pub struct AudioStreams {
     pub input_stream: Stream,
     pub output_stream: Stream,

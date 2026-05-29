@@ -5,7 +5,7 @@ use std::{
 
 use eframe::egui;
 
-use crate::{settings::Settings, state::AppState, ui};
+use crate::{settings::Settings, state::AppState, ui, video::RgbFrame};
 
 pub struct App {
     pub state: AppState,
@@ -18,30 +18,35 @@ pub struct App {
     pub available_audio_outputs: Vec<(String, String)>,
     pub volume: Arc<Mutex<f32>>,
     pub data_dir: PathBuf,
+    pub current_frame: Option<egui::TextureHandle>,
+    pub latest_frame: Arc<Mutex<Option<RgbFrame>>>,
+}
+
+pub struct AppInit {
+    pub settings: Settings,
+    pub video_devices: Vec<String>,
+    pub audio_inputs: Vec<(String, String)>,
+    pub audio_outputs: Vec<(String, String)>,
+    pub volume: Arc<Mutex<f32>>,
+    pub data_dir: PathBuf,
+    pub latest_frame: Arc<Mutex<Option<RgbFrame>>>,
 }
 
 impl App {
-    pub fn new(
-        initial_state: AppState,
-        settings: Settings,
-        video_devices: Vec<String>,
-        audio_inputs: Vec<(String, String)>,
-        audio_outputs: Vec<(String, String)>,
-        volume: Arc<Mutex<f32>>,
-        data_dir: PathBuf,
-    ) -> Self {
-        let is_fullscreen = settings.fullscreen;
+    pub fn new(initial_state: AppState, init: AppInit) -> Self {
         Self {
             state: initial_state,
             show_settings: false,
-            is_fullscreen,
+            is_fullscreen: init.settings.fullscreen,
             runtime_error: None,
-            settings,
-            available_video_devices: video_devices,
-            available_audio_inputs: audio_inputs,
-            available_audio_outputs: audio_outputs,
-            volume,
-            data_dir,
+            settings: init.settings,
+            available_video_devices: init.video_devices,
+            available_audio_inputs: init.audio_inputs,
+            available_audio_outputs: init.audio_outputs,
+            volume: init.volume,
+            data_dir: init.data_dir,
+            current_frame: None,
+            latest_frame: init.latest_frame,
         }
     }
 

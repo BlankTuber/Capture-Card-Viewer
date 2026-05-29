@@ -11,6 +11,7 @@ pub enum AppError {
     AudioStreamFailed,
     AudioSettingsCorrupt,
     MissingEntries,
+    Unexpected,
 }
 
 impl std::error::Error for AppError {}
@@ -27,6 +28,7 @@ impl Display for AppError {
             AppError::AudioStreamFailed => "Audio stream has failed",
             AppError::AudioSettingsCorrupt => "Audio settings were not found or are corrupt",
             AppError::MissingEntries => "You need to make sure all fields are selected",
+            AppError::Unexpected => "Something unexpected happened!",
         };
         write!(f, "{}", readable_error)
     }

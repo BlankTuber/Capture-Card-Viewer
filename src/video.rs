@@ -1,5 +1,5 @@
 use std::{
-    sync::mpsc::Receiver,
+    sync::{Arc, Mutex},
     thread::{self, JoinHandle},
 };
 
@@ -7,7 +7,7 @@ use nokhwa::{
     Camera,
     pixel_format::RgbFormat,
     query,
-    utils::{ApiBackend, CameraIndex, RequestedFormat, RequestedFormatType},
+    utils::{ApiBackend, CameraIndex, RequestedFormat, RequestedFormatType, Resolution},
 };
 
 use crate::errors::AppError;
@@ -46,11 +46,12 @@ pub fn find_video_device(name: &str) -> Result<CameraIndex, AppError> {
 
 pub fn spawn_video_thread(
     device: CameraIndex,
-) -> Result<(JoinHandle<()>, Receiver<RgbFrame>), AppError> {
-    let (tx, rx) = std::sync::mpsc::channel();
-
+    latest_frame: Arc<Mutex<Option<RgbFrame>>>,
+) -> Result<JoinHandle<()>, AppError> {
     let handle = thread::spawn(move || {
-        let req_format = RequestedFormat::new::<RgbFormat>(RequestedFormatType::None);
+        let req_format = RequestedFormat::new::<RgbFormat>(RequestedFormatType::HighestResolution(
+            Resolution::new(1920, 1080),
+        ));
 
         let mut camera = match Camera::new(device, req_format) {
             Ok(c) => c,
@@ -71,19 +72,24 @@ pub fn spawn_video_thread(
                     log::warn!("Failed to grab frame: {e}");
                     break;
                 }
-                Ok(frame) => match frame.decode_image::<RgbFormat>() {
-                    Err(e) => log::warn!("Failed to decode frame: {e}"),
-                    Ok(image) => {
-                        let w = image.width();
-                        let h = image.height();
-                        if tx.send((w, h, image.into_raw())).is_err() {
-                            break;
-                        }
+
+                Ok(frame) => {
+                    let image = match frame.decode_image::<RgbFormat>() {
+                        Ok(img) => img,
+                        Err(_) => continue, // drop bad frames
+                    };
+
+                    let w = image.width();
+                    let h = image.height();
+
+                    {
+                        let mut slot = latest_frame.lock().unwrap();
+                        *slot = Some((w, h, image.into_raw()));
                     }
-                },
+                }
             }
         }
     });
 
-    Ok((handle, rx))
+    Ok(handle)
 }

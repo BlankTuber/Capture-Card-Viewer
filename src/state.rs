@@ -11,7 +11,6 @@ use crate::{
 };
 
 pub struct LoadingResult {
-    pub video_rx: Receiver<RgbFrame>,
     pub video_thread: JoinHandle<()>,
     pub audio_streams: AudioStreams,
 }
@@ -21,8 +20,8 @@ pub enum AppState {
     Loading {
         loading_rx: Receiver<Result<LoadingResult, AppError>>,
     },
+    #[allow(dead_code)]
     Playing {
-        video_rx: Receiver<RgbFrame>,
         video_thread: JoinHandle<()>,
         audio_streams: AudioStreams,
     },
@@ -35,7 +34,10 @@ impl AppState {
     }
 }
 
-pub fn start_loading(settings: &Settings) -> (AppState, Arc<Mutex<f32>>) {
+pub fn start_loading(
+    settings: &Settings,
+    latest_frame: Arc<Mutex<Option<RgbFrame>>>,
+) -> (AppState, Arc<Mutex<f32>>) {
     let volume = Arc::new(Mutex::new(settings.volume));
     let volume_clone = Arc::clone(&volume);
 
@@ -51,7 +53,7 @@ pub fn start_loading(settings: &Settings) -> (AppState, Arc<Mutex<f32>>) {
             let audio_input = audio_input.ok_or(AppError::AudioDeviceNotFound)?;
 
             let camera_index = find_video_device(&video_name)?;
-            let (video_thread, video_rx) = spawn_video_thread(camera_index)?;
+            let video_thread = spawn_video_thread(camera_index, latest_frame)?;
 
             let audio_config = AudioConfig {
                 input_device: audio_input,
@@ -61,7 +63,6 @@ pub fn start_loading(settings: &Settings) -> (AppState, Arc<Mutex<f32>>) {
             let audio_streams = AudioStreams::start_playback(audio_config)?;
 
             Ok(LoadingResult {
-                video_rx,
                 video_thread,
                 audio_streams,
             })

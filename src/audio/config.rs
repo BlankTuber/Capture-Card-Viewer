@@ -2,25 +2,12 @@ use std::sync::{Arc, Mutex};
 
 use cpal::{Device, StreamConfig, traits::DeviceTrait};
 
-use crate::{errors::AppError, settings::Settings};
+use crate::errors::AppError;
 
 pub struct AudioConfig {
     pub input_device: String,
     pub output_device: String,
     pub volume: Arc<Mutex<f32>>,
-}
-
-impl AudioConfig {
-    pub fn from_settings(settings: &Settings, volume: Arc<Mutex<f32>>) -> Result<Self, AppError> {
-        Ok(Self {
-            input_device: settings
-                .audio_input
-                .clone()
-                .ok_or(AppError::AudioDeviceNotFound)?,
-            output_device: settings.audio_output.clone(),
-            volume,
-        })
-    }
 }
 
 pub struct NegotiatedConfig {
