@@ -1,9 +1,21 @@
-use std::{fs::create_dir_all, path::PathBuf};
+use std::{
+    fs::create_dir_all,
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
 
-use anyhow::Context;
+use anyhow::{Context, Ok};
 use directories::BaseDirs;
+use eframe::egui;
 
-use crate::errors::fatal_error;
+use crate::{
+    app::App,
+    audio::io::{query_audio_inputs, query_audio_outputs},
+    errors::fatal_error,
+    settings::Settings,
+    state::{AppState, start_loading},
+    video::query_video_devices,
+};
 
 mod app;
 mod audio;
@@ -38,4 +50,44 @@ fn main() {
         env!("CARGO_PKG_VERSION"),
         log_status
     );
+
+    let host = cpal::default_host();
+    let video_devices = query_video_devices();
+    let audio_inputs = query_audio_inputs(&host);
+    let audio_outputs = query_audio_outputs(&host);
+
+    let app = match Settings::load(&data_dir) {
+        Ok(settings) => {
+            let (app_state, volume) = start_loading(&settings);
+            App::new(
+                app_state,
+                settings,
+                video_devices,
+                audio_inputs,
+                audio_outputs,
+                volume,
+            )
+        }
+        Err(_) => {
+            let settings = Settings::default();
+            let volume = Arc::new(Mutex::new(settings.volume));
+            App::new(
+                AppState::Initial,
+                settings,
+                video_devices,
+                audio_inputs,
+                audio_outputs,
+                volume,
+            )
+        }
+    };
+
+    let native_options = eframe::NativeOptions {
+        viewport: egui::ViewportBuilder::default()
+            .with_inner_size([1280.0, 720.0])
+            .with_min_inner_size([640.0, 360.0])
+            .with_resizable(false)
+            .with_fullscreen(app.is_fullscreen),
+        ..Default::default()
+    };
 }

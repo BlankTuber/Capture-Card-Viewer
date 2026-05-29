@@ -23,9 +23,9 @@ impl App {
         video_devices: Vec<String>,
         audio_inputs: Vec<(String, String)>,
         audio_outputs: Vec<(String, String)>,
+        volume: Arc<Mutex<f32>>,
     ) -> Self {
         let is_fullscreen = settings.fullscreen;
-        let volume = Arc::new(Mutex::new(settings.volume));
         Self {
             state: initial_state,
             show_settings: false,
