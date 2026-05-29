@@ -25,6 +25,11 @@ pub fn render(app: &mut App, ui: &mut egui::Ui) {
                         }
                     }
 
+                    ui.add_space(5.0);
+                    if ui.button("Fullscreen").clicked() {
+                        app.is_fullscreen = !app.is_fullscreen;
+                    }
+
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         if ui.button("✖").clicked() {
                             ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
