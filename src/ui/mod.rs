@@ -14,9 +14,15 @@ pub fn render(app: &mut App, ui: &mut egui::Ui) {
             .frame(egui::Frame::NONE.inner_margin(egui::Margin::symmetric(12, 6)))
             .show_inside(ui, |ui| {
                 ui.horizontal(|ui| {
-                    let settings_btn = ui.button("Settings");
-                    if settings_btn.clicked() {
-                        log::info!("Settings klikket!");
+                    match &app.state {
+                        AppState::Initial => {}
+                        _ => {
+                            let settings_btn = ui.button("Settings");
+                            if settings_btn.clicked() {
+                                log::info!("Settings klikket!");
+                                app.show_settings = !app.show_settings;
+                            }
+                        }
                     }
 
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -36,7 +42,10 @@ pub fn render(app: &mut App, ui: &mut egui::Ui) {
     }
 
     match &app.state {
-        AppState::Initial => initial_view::render(app, ui),
+        AppState::Initial => {
+            app.show_settings = false;
+            initial_view::render(app, ui)
+        }
         AppState::Loading { .. } =>
         /* loading_view::render(app, ui) */
         {
@@ -54,9 +63,9 @@ pub fn render(app: &mut App, ui: &mut egui::Ui) {
         }
     }
 
-    // if app.show_settings {
-    //     settings_view::render(app, ui);
-    // }
+    if app.show_settings {
+        settings_view::render(app, ui);
+    }
 
     // if app.runtime_error.is_some() {
     //     error_view::render_modal(app, ui);

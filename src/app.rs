@@ -109,8 +109,8 @@ impl eframe::App for App {
                     egui::WindowLevel::AlwaysOnTop,
                 ));
             } else {
-                ctx.send_viewport_cmd(egui::ViewportCommand::Fullscreen(false));
                 ctx.send_viewport_cmd(egui::ViewportCommand::Decorations(false));
+                ctx.send_viewport_cmd(egui::ViewportCommand::Fullscreen(false));
                 ctx.send_viewport_cmd(egui::ViewportCommand::WindowLevel(
                     egui::WindowLevel::Normal,
                 ));

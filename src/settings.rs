@@ -13,8 +13,6 @@ pub struct Settings {
     pub audio_output: String,
     pub volume: f32,
     pub fullscreen: bool,
-    pub keybind_fullscreen: String,
-    pub keybind_settings: String,
 }
 
 impl Default for Settings {
@@ -25,8 +23,6 @@ impl Default for Settings {
             audio_output: String::new(),
             volume: 1.5,
             fullscreen: false,
-            keybind_fullscreen: String::from("F11"),
-            keybind_settings: String::from("S"),
         }
     }
 }

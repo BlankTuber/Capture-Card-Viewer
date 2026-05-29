@@ -89,8 +89,7 @@ fn main() {
             .with_resizable(true)
             .with_maximized(true)
             .with_fullscreen(app.is_fullscreen)
-            .with_decorations(false)
-            .with_transparent(true),
+            .with_decorations(false),
         ..Default::default()
     };
 
