@@ -86,8 +86,11 @@ fn main() {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1280.0, 720.0])
             .with_min_inner_size([640.0, 360.0])
-            .with_resizable(false)
-            .with_fullscreen(app.is_fullscreen),
+            .with_resizable(true)
+            .with_maximized(true)
+            .with_fullscreen(app.is_fullscreen)
+            .with_decorations(false)
+            .with_transparent(true),
         ..Default::default()
     };
 
