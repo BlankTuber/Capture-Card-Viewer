@@ -4,7 +4,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use anyhow::{Context, Ok};
+use anyhow::Context;
 use directories::BaseDirs;
 use eframe::egui;
 
@@ -90,4 +90,15 @@ fn main() {
             .with_fullscreen(app.is_fullscreen),
         ..Default::default()
     };
+
+    if let Err(e) = eframe::run_native(
+        env!("CARGO_PKG_NAME"),
+        native_options,
+        Box::new(move |cc| {
+            App::create_style(&cc.egui_ctx);
+            Ok(Box::new(app))
+        }),
+    ) {
+        fatal_error(&format!("Failed to start: {e:#}"));
+    }
 }
