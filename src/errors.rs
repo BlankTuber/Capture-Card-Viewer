@@ -10,6 +10,7 @@ pub enum AppError {
     VideoStreamFailed,
     AudioStreamFailed,
     AudioSettingsCorrupt,
+    MissingEntries,
 }
 
 impl std::error::Error for AppError {}
@@ -25,6 +26,7 @@ impl Display for AppError {
             AppError::VideoStreamFailed => "Video stream has failed",
             AppError::AudioStreamFailed => "Audio stream has failed",
             AppError::AudioSettingsCorrupt => "Audio settings were not found or are corrupt",
+            AppError::MissingEntries => "You need to make sure all fields are selected",
         };
         write!(f, "{}", readable_error)
     }

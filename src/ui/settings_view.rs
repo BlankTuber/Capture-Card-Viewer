@@ -1,4 +1,4 @@
-use crate::app::App;
+use crate::{app::App, errors::AppError, state::start_loading};
 use cpal::traits::{DeviceTrait, HostTrait};
 use eframe::egui;
 
@@ -6,6 +6,10 @@ pub fn render(app: &mut App, ctx: &egui::Context) {
     if !app.show_settings {
         return;
     }
+
+    let initial_video_input = app.settings.video_input.clone();
+    let initial_audio_input = app.settings.audio_input.clone();
+    let initial_audio_output = app.settings.audio_output.clone();
 
     let screen_size = ctx.content_rect().size();
 
@@ -174,7 +178,7 @@ pub fn render(app: &mut App, ctx: &egui::Context) {
 
                     ui.add_sized(
                         [combo_width, 24.0],
-                        egui::Slider::new(&mut app.settings.volume, 0.0..=3.0)
+                        egui::Slider::new(&mut *app.volume.lock().unwrap(), 0.0..=3.0)
                             .text("x")
                             .show_value(true),
                     );
@@ -239,11 +243,34 @@ pub fn render(app: &mut App, ctx: &egui::Context) {
                 );
 
                 if close_btn.clicked() {
+                    *app.volume.lock().unwrap() = app.settings.volume;
                     app.show_settings = false;
                 }
 
                 if save_btn.clicked() {
-                    log::info!("Settings saved");
+                    app.settings.volume = *app.volume.lock().unwrap();
+
+                    if app.settings.video_input.is_none() || app.settings.audio_input.is_none() {
+                        app.settings.video_input = initial_video_input.clone();
+                        app.settings.audio_input = initial_audio_input.clone();
+                        log::info!("Need to select all inputs!");
+                        app.runtime_error = Some(AppError::MissingEntries.to_string());
+                        return;
+                    }
+
+                    if app.settings.video_input != initial_video_input
+                        || app.settings.audio_input != initial_audio_input
+                        || app.settings.audio_output != initial_audio_output
+                    {
+                        if let Err(e) = app.settings.save(&app.data_dir) {
+                            log::error!("Failed to save settings: {e}");
+                            app.runtime_error = Some(AppError::SettingsSaveFailed.to_string());
+                        }
+                        let (loading_state, volume) = start_loading(&app.settings);
+                        app.state.transition(loading_state);
+                        app.volume = volume;
+                    }
+
                     app.show_settings = false;
                 }
             });

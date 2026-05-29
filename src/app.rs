@@ -1,4 +1,7 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
 
 use eframe::egui;
 
@@ -14,6 +17,7 @@ pub struct App {
     pub available_audio_inputs: Vec<(String, String)>,
     pub available_audio_outputs: Vec<(String, String)>,
     pub volume: Arc<Mutex<f32>>,
+    pub data_dir: PathBuf,
 }
 
 impl App {
@@ -24,6 +28,7 @@ impl App {
         audio_inputs: Vec<(String, String)>,
         audio_outputs: Vec<(String, String)>,
         volume: Arc<Mutex<f32>>,
+        data_dir: PathBuf,
     ) -> Self {
         let is_fullscreen = settings.fullscreen;
         Self {
@@ -36,6 +41,7 @@ impl App {
             available_audio_inputs: audio_inputs,
             available_audio_outputs: audio_outputs,
             volume,
+            data_dir,
         }
     }
 

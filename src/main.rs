@@ -66,6 +66,7 @@ fn main() {
                 audio_inputs,
                 audio_outputs,
                 volume,
+                data_dir,
             )
         }
         Err(_) => {
@@ -78,6 +79,7 @@ fn main() {
                 audio_inputs,
                 audio_outputs,
                 volume,
+                data_dir,
             )
         }
     };

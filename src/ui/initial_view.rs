@@ -1,4 +1,4 @@
-use crate::app::App;
+use crate::{app::App, errors::AppError, state::start_loading};
 use eframe::egui;
 
 pub fn render(app: &mut App, ui: &mut egui::Ui) {
@@ -135,9 +135,19 @@ pub fn render(app: &mut App, ui: &mut egui::Ui) {
         );
 
         if save_btn.clicked() {
-            log::info!("Save clicked");
-            log::info!("Video: {:?}", app.settings.video_input);
-            log::info!("Audio: {:?}", app.settings.audio_input);
+            if app.settings.video_input.is_none() || app.settings.audio_input.is_none() {
+                log::info!("Need to select all inputs!");
+                app.runtime_error = Some(AppError::MissingEntries.to_string());
+            } else {
+                log::info!("Continiuing to loading state");
+                let (loading_state, volume_mutex) = start_loading(&app.settings);
+                if let Err(e) = app.settings.save(&app.data_dir) {
+                    log::error!("Failed to save settings: {e}");
+                    app.runtime_error = Some(AppError::SettingsSaveFailed.to_string());
+                }
+                app.state.transition(loading_state);
+                app.volume = volume_mutex;
+            }
         }
     });
 }
