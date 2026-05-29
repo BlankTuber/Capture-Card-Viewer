@@ -6,9 +6,12 @@ pub fn render(app: &mut App, ctx: &egui::Context) {
         return;
     }
 
-    let initial_video_input = app.settings.video_input.clone();
-    let initial_audio_input = app.settings.audio_input.clone();
-    let initial_audio_output = app.settings.audio_output.clone();
+    if app.settings_snapshot.is_none() {
+        app.settings_snapshot = Some(app.settings.clone());
+    }
+    let initial_video_input = app.settings_snapshot.as_ref().unwrap().video_input.clone();
+    let initial_audio_input = app.settings_snapshot.as_ref().unwrap().audio_input.clone();
+    let initial_audio_output = app.settings_snapshot.as_ref().unwrap().audio_output.clone();
 
     let screen_size = ctx.content_rect().size();
 
@@ -242,6 +245,7 @@ pub fn render(app: &mut App, ctx: &egui::Context) {
                     app.settings.audio_input = initial_audio_input.clone();
                     app.settings.audio_output = initial_audio_output.clone();
                     *app.volume.lock().unwrap() = app.settings.volume;
+                    app.settings_snapshot = None;
                     app.show_settings = false;
                 }
 
@@ -273,7 +277,7 @@ pub fn render(app: &mut App, ctx: &egui::Context) {
                         app.state.transition(loading_state);
                         app.volume = volume;
                     }
-
+                    app.settings_snapshot = None;
                     app.show_settings = false;
                 }
             });

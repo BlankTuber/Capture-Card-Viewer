@@ -6,7 +6,7 @@ use std::{
 
 use crate::errors::AppError;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Settings {
     pub video_input: Option<String>,
     pub audio_input: Option<String>,

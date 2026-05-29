@@ -23,6 +23,7 @@ pub struct App {
     pub latest_frame: Arc<ArcSwapOption<RgbFrame>>,
     pub repaint_ctx: Arc<OnceLock<egui::Context>>,
     pub default_audio_output_id: Option<String>,
+    pub settings_snapshot: Option<Settings>,
 }
 
 pub struct AppInit {
@@ -54,6 +55,7 @@ impl App {
             latest_frame: init.latest_frame,
             repaint_ctx: init.repaint_ctx,
             default_audio_output_id: init.default_audio_output_id,
+            settings_snapshot: None,
         }
     }
 
