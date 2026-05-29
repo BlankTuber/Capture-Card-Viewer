@@ -108,7 +108,6 @@ fn main() {
             .with_min_inner_size([640.0, 360.0])
             .with_resizable(true)
             .with_maximized(true)
-            .with_fullscreen(app.is_fullscreen)
             .with_decorations(false),
         ..Default::default()
     };
