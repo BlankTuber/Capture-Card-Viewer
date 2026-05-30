@@ -117,7 +117,9 @@ impl eframe::App for App {
             if i.key_pressed(egui::Key::F11) {
                 self.is_fullscreen = !self.is_fullscreen;
             }
-            if i.key_pressed(egui::Key::S) {
+            if i.key_pressed(egui::Key::S)
+                && !matches!(self.state, AppState::Initial | AppState::Error(_))
+            {
                 self.show_settings = !self.show_settings;
             }
         });

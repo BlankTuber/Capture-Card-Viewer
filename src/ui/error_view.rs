@@ -13,7 +13,6 @@ pub fn render(app: &mut App, ui: &mut egui::Ui) {
 
     ui.vertical_centered(|ui| {
         ui.add_space(ui.available_height() / 2.0 - 20.0);
-        ui.spinner();
         ui.label("A fatal error has occured!");
     });
     ui.add_space(20.0);

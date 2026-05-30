@@ -47,10 +47,7 @@ pub fn render(app: &mut App, ui: &mut egui::Ui) {
     }
 
     match &app.state {
-        AppState::Initial => {
-            app.show_settings = false;
-            initial_view::render(app, ui)
-        }
+        AppState::Initial => initial_view::render(app, ui),
         AppState::Loading { .. } => {
             loading_view::render(app, ui);
         }
