@@ -76,11 +76,18 @@ fn main() {
 
     let app = match Settings::load(&data_dir) {
         Ok(settings) => {
+            let camera_index = settings
+                .video_input
+                .as_deref()
+                .and_then(|name| video::find_video_device(name, &devices.video).ok());
+
             let (app_state, volume) = start_loading(
                 &settings,
+                camera_index,
                 video.latest_frame.clone(),
                 video.repaint_ctx.clone(),
             );
+
             let init = AppInit {
                 settings,
                 devices,

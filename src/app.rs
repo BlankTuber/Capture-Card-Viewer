@@ -5,11 +5,12 @@ use std::{
 
 use arc_swap::ArcSwapOption;
 use eframe::egui;
+use nokhwa::utils::CameraIndex;
 
 use crate::{settings::Settings, state::AppState, ui, video::RgbFrame};
 
 pub struct DeviceLists {
-    pub video: Vec<String>,
+    pub video: Vec<(String, CameraIndex)>,
     pub audio_inputs: Vec<(String, String)>,
     pub audio_outputs: Vec<(String, String)>,
     pub audio_output_default: Option<String>,
@@ -120,7 +121,6 @@ impl eframe::App for App {
     fn logic(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
         self.video.repaint_ctx.get_or_init(|| ctx.clone());
         let current_fullscreen = ctx.input(|i| i.viewport().fullscreen.unwrap_or(false));
-        let current_maximized = ctx.input(|i| i.viewport().maximized.unwrap_or(false));
 
         ctx.input(|i| {
             if i.key_pressed(egui::Key::F11) {
@@ -148,10 +148,6 @@ impl eframe::App for App {
                 ));
                 ctx.send_viewport_cmd(egui::ViewportCommand::Maximized(true));
             }
-        }
-
-        if !self.is_fullscreen && !current_maximized {
-            ctx.send_viewport_cmd(egui::ViewportCommand::Maximized(true));
         }
     }
 

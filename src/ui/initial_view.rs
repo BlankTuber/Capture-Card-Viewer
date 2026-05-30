@@ -1,4 +1,4 @@
-use crate::{app::App, errors::AppError, state::start_loading};
+use crate::{app::App, errors::AppError, state::start_loading, video::find_video_device};
 use eframe::egui;
 
 pub fn render(app: &mut App, ui: &mut egui::Ui) {
@@ -56,12 +56,12 @@ pub fn render(app: &mut App, ui: &mut egui::Ui) {
                     .width(combo_width)
                     .selected_text(egui::RichText::new(&selected_video).size(combo_text_size))
                     .show_ui(ui, |ui| {
-                        for device in &app.devices.video {
+                        for (name, _) in &app.devices.video {
                             if ui
-                                .selectable_value(&mut selected_video, device.clone(), device)
+                                .selectable_value(&mut selected_video, name.clone(), name)
                                 .clicked()
                             {
-                                app.settings.video_input = Some(device.clone());
+                                app.settings.video_input = Some(name.clone());
                             }
                         }
                     });
@@ -141,8 +141,15 @@ pub fn render(app: &mut App, ui: &mut egui::Ui) {
                 app.runtime_error = Some(AppError::MissingEntries.to_string());
             } else {
                 log::info!("Continiuing to loading state");
+                let camera_index = app
+                    .settings
+                    .video_input
+                    .as_deref()
+                    .and_then(|name| find_video_device(name, &app.devices.video).ok());
+
                 let (loading_state, volume_mutex) = start_loading(
                     &app.settings,
+                    camera_index,
                     app.video.latest_frame.clone(),
                     app.video.repaint_ctx.clone(),
                 );

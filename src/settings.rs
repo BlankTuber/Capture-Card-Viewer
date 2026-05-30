@@ -8,8 +8,8 @@ use crate::errors::AppError;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Settings {
-    pub video_input: Option<String>,
-    pub audio_input: Option<String>,
+    pub video_input: Option<String>, // Stored by device name, as nokhwa does not give ID
+    pub audio_input: Option<String>, // Stored as device ID, as it's less bound to changes
     pub audio_output: String,
     pub volume: f32,
     pub fullscreen: bool,

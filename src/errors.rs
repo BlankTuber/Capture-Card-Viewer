@@ -7,8 +7,10 @@ pub enum AppError {
     SettingsSaveFailed,
     VideoDeviceNotFound,
     AudioDeviceNotFound,
-    // VideoStreamFailed,
+    VideoStreamFailed,
     AudioStreamFailed,
+    VideoDeviceInUse,
+    AudioDeviceInUse,
     AudioSettingsCorrupt,
     MissingEntries,
     Unexpected,
@@ -24,7 +26,11 @@ impl Display for AppError {
             AppError::SettingsSaveFailed => "Failed to save settings",
             AppError::VideoDeviceNotFound => "Could not find video device",
             AppError::AudioDeviceNotFound => "Could not find audio device",
-            // AppError::VideoStreamFailed => "Video stream has failed",
+            AppError::VideoStreamFailed => "Video stream failed to start",
+            AppError::VideoDeviceInUse => {
+                "Video device is in use by another application (e.g. OBS)"
+            }
+            AppError::AudioDeviceInUse => "Audio device is in use by another application",
             AppError::AudioStreamFailed => "Audio stream has failed",
             AppError::AudioSettingsCorrupt => "Audio settings were not found or are corrupt",
             AppError::MissingEntries => "You need to make sure all fields are selected",

@@ -12,11 +12,9 @@ pub fn render(app: &mut App, ui: &mut egui::Ui) {
     } = &app.state
         && video_thread.is_finished()
         && !stop_flag.load(Ordering::Relaxed)
+        && app.runtime_error.is_none()
     {
-        app.runtime_error = Some(
-            "Video stream disconnected. Update device in settings, or restart the app, to reconnect."
-                .to_string(),
-        );
+        app.runtime_error = Some("Video stream disconnected. ...".to_string());
     }
 
     if let Some(frame) = app.video.latest_frame.swap(None) {

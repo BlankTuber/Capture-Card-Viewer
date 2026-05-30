@@ -1,7 +1,7 @@
 use std::{
     sync::{
         Arc, Condvar, Mutex,
-        atomic::{AtomicUsize, Ordering},
+        atomic::{AtomicBool, AtomicUsize, Ordering},
     },
     thread,
     time::Duration,
@@ -27,8 +27,14 @@ use crate::{
 
 #[allow(dead_code)]
 pub struct AudioStreams {
-    pub input_stream: Stream,
-    pub output_stream: Stream,
+    input_stream: Stream,
+    output_stream: Stream,
+    process_stop: Arc<AtomicBool>,
+}
+impl Drop for AudioStreams {
+    fn drop(&mut self) {
+        self.process_stop.store(true, Ordering::Relaxed);
+    }
 }
 
 impl AudioStreams {
@@ -76,7 +82,10 @@ impl AudioStreams {
             )
             .map_err(|e| {
                 log::warn!("Failed to build input stream: {e}");
-                AppError::AudioStreamFailed
+                match e {
+                    cpal::BuildStreamError::DeviceNotAvailable => AppError::AudioDeviceInUse,
+                    _ => AppError::AudioStreamFailed,
+                }
             })?;
 
         let mut processor = Processor::new(
@@ -86,12 +95,18 @@ impl AudioStreams {
             stream_config.output_sample_rate,
         )?;
 
+        let process_stop = Arc::new(AtomicBool::new(false));
+        let process_stop_clone = Arc::clone(&process_stop);
+
         thread::spawn(move || {
             let samples_per_chunk = CHUNK_SIZE * input_channels;
             let mut accumulator: Vec<f32> = Vec::with_capacity(samples_per_chunk);
             let (lock, cvar) = &*wake_pair;
 
             loop {
+                if process_stop_clone.load(Ordering::Relaxed) {
+                    break;
+                }
                 let overruns = input_overruns.swap(0, Ordering::Relaxed);
                 if overruns > 0 {
                     log::warn!("Input overrun! Dropped {overruns} samples.");
@@ -143,8 +158,11 @@ impl AudioStreams {
                 None,
             )
             .map_err(|e| {
-                log::warn!("Failed to build output stream: {e}");
-                AppError::AudioStreamFailed
+                log::warn!("Failed to build input stream: {e}");
+                match e {
+                    cpal::BuildStreamError::DeviceNotAvailable => AppError::AudioDeviceInUse,
+                    _ => AppError::AudioStreamFailed,
+                }
             })?;
 
         input_stream.play().map_err(|e| {
@@ -160,6 +178,7 @@ impl AudioStreams {
         Ok(Self {
             input_stream,
             output_stream,
+            process_stop,
         })
     }
 }

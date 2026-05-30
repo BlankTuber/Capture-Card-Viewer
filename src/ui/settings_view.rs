@@ -1,4 +1,4 @@
-use crate::{app::App, errors::AppError, state::start_loading};
+use crate::{app::App, errors::AppError, state::start_loading, video::find_video_device};
 use eframe::egui;
 
 pub fn render(app: &mut App, ctx: &egui::Context) {
@@ -77,12 +77,12 @@ pub fn render(app: &mut App, ctx: &egui::Context) {
                         .width(combo_width)
                         .selected_text(egui::RichText::new(&selected_video).size(body_size))
                         .show_ui(ui, |ui| {
-                            for device in &app.devices.video {
+                            for (name, _) in &app.devices.video {
                                 if ui
-                                    .selectable_value(&mut selected_video, device.clone(), device)
+                                    .selectable_value(&mut selected_video, name.clone(), name)
                                     .clicked()
                                 {
-                                    app.settings.video_input = Some(device.clone());
+                                    app.settings.video_input = Some(name.clone());
                                 }
                             }
                         });
@@ -271,8 +271,15 @@ pub fn render(app: &mut App, ctx: &egui::Context) {
                         || app.settings.audio_input != initial_audio_input
                         || app.settings.audio_output != initial_audio_output
                     {
+                        let camera_index = app
+                            .settings
+                            .video_input
+                            .as_deref()
+                            .and_then(|name| find_video_device(name, &app.devices.video).ok());
+
                         let (loading_state, volume) = start_loading(
                             &app.settings,
+                            camera_index,
                             app.video.latest_frame.clone(),
                             app.video.repaint_ctx.clone(),
                         );
