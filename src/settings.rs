@@ -21,7 +21,7 @@ impl Default for Settings {
             video_input: None,
             audio_input: None,
             audio_output: String::new(),
-            volume: 1.5,
+            volume: 1.0,
             fullscreen: false,
         }
     }
