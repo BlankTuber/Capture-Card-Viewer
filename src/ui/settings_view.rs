@@ -184,34 +184,64 @@ pub fn render(app: &mut App, ctx: &egui::Context) {
                     );
 
                     ui.end_row();
+                });
 
-                    // -------- KEYBINDS --------
-                    ui.label(
-                        egui::RichText::new("Fullscreen Keybind")
-                            .size(label_size)
-                            .strong(),
-                    );
+            // ---------------- Divider & Keybinds ----------------
+            ui.add_space(spacing_y * 0.5);
+            ui.separator();
+            ui.add_space(spacing_y * 0.5);
 
-                    ui.label(
-                        egui::RichText::new("F11")
-                            .size(body_size)
-                            .color(egui::Color32::from_gray(210)),
-                    );
+            let render_key = |ui: &mut egui::Ui, text: &str| {
+                egui::Frame::NONE
+                    .fill(egui::Color32::from_rgb(35, 38, 45))
+                    .stroke(egui::Stroke::new(1.0, egui::Color32::from_rgb(80, 85, 95)))
+                    .corner_radius(4.0)
+                    .inner_margin(egui::Margin::symmetric(8, 4))
+                    .show(ui, |ui| {
+                        ui.label(
+                            egui::RichText::new(text)
+                                .size(body_size)
+                                .color(egui::Color32::from_gray(230)),
+                        );
+                    });
+            };
 
+            egui::Grid::new("keybinds_grid")
+                .num_columns(2)
+                .spacing([(screen_size.x * 0.025).clamp(28.0, 48.0), spacing_y])
+                .min_col_width(combo_width)
+                .show(ui, |ui| {
+                    // Row 1: Fullscreen | Settings
+                    ui.horizontal(|ui| {
+                        ui.label(egui::RichText::new("Fullscreen:").size(label_size).strong());
+                        render_key(ui, "F11");
+                    });
+
+                    ui.horizontal(|ui| {
+                        ui.label(egui::RichText::new("Settings:").size(label_size).strong());
+                        render_key(ui, "S");
+                    });
                     ui.end_row();
 
-                    ui.label(
-                        egui::RichText::new("Settings Keybind")
-                            .size(label_size)
-                            .strong(),
-                    );
+                    ui.horizontal(|ui| {
+                        ui.label(
+                            egui::RichText::new("Close Settings:")
+                                .size(label_size)
+                                .strong(),
+                        );
+                        render_key(ui, "Esc");
+                    });
 
-                    ui.label(
-                        egui::RichText::new("S")
-                            .size(body_size)
-                            .color(egui::Color32::from_gray(210)),
-                    );
-
+                    ui.horizontal(|ui| {
+                        ui.label(egui::RichText::new("Exit App:").size(label_size).strong());
+                        render_key(ui, "Ctrl");
+                        ui.label(
+                            egui::RichText::new("+")
+                                .size(body_size)
+                                .color(egui::Color32::from_gray(160)),
+                        );
+                        render_key(ui, "Q");
+                    });
                     ui.end_row();
                 });
 

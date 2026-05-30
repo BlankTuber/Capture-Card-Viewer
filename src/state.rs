@@ -36,6 +36,7 @@ pub enum AppState {
         stop_flag: Arc<AtomicBool>,
     },
     Error(String),
+    Exiting,
 }
 
 impl AppState {

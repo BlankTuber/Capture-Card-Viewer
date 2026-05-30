@@ -123,13 +123,34 @@ impl eframe::App for App {
         let current_fullscreen = ctx.input(|i| i.viewport().fullscreen.unwrap_or(false));
 
         ctx.input(|i| {
+            // Toggle Fullscreen
             if i.key_pressed(egui::Key::F11) {
                 self.is_fullscreen = !self.is_fullscreen;
             }
+
+            // Toggle Settings
             if i.key_pressed(egui::Key::S)
                 && !matches!(self.state, AppState::Initial | AppState::Error(_))
             {
                 self.show_settings = !self.show_settings;
+            }
+
+            // Contextual "Go Back" / Cancel
+            if i.key_pressed(egui::Key::Escape) {
+                if self.show_settings {
+                    if let Some(snapshot) = self.settings_snapshot.take() {
+                        self.settings = snapshot.clone();
+                        *self.volume.lock().unwrap() = snapshot.volume;
+                    }
+                    self.show_settings = false;
+                } else if self.is_fullscreen {
+                    self.is_fullscreen = false;
+                }
+            }
+
+            // Exit Application: Ctrl+Q
+            if i.modifiers.command && i.key_pressed(egui::Key::Q) {
+                self.state.transition(AppState::Exiting);
             }
         });
 

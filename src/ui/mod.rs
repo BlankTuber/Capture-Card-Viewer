@@ -1,3 +1,5 @@
+use std::{thread::sleep, time::Duration};
+
 use eframe::egui;
 
 use crate::{app::App, state::AppState};
@@ -32,7 +34,7 @@ pub fn render(app: &mut App, ui: &mut egui::Ui) {
 
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         if ui.button("✖").clicked() {
-                            ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
+                            app.state.transition(AppState::Exiting);
                         }
 
                         ui.add_space(5.0);
@@ -55,6 +57,12 @@ pub fn render(app: &mut App, ui: &mut egui::Ui) {
             playing_view::render(app, ui);
         }
         AppState::Error(_) => error_view::render(app, ui),
+        AppState::Exiting => {
+            ui.ctx()
+                .send_viewport_cmd(egui::ViewportCommand::Minimized(true));
+            sleep(Duration::from_millis(200));
+            ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
+        }
     }
 
     if app.show_settings {
