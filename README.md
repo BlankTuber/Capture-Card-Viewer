@@ -1,260 +1,107 @@
-# Capture-Card-Viewer
+# Capture Card Viewer
 
-A simple media viewing tool for standard capture cards built in Rust.
+A lightweight capture card viewer for Windows. Displays video and audio from standard USB capture cards with minimal setup and no bloat.
 
-## Crates
+---
 
-- anyhow
-- cpal
-- directories
-- eframe
-- log
-- nokhwa (features: "input-native")
-- ringbuf
-- rubato
-- serde (features: "derive")
-- simplelog
-- toml
+## Requirements
 
-## File structure
+- Windows 10 or later (64-bit)
+- A USB capture card with UVC (USB Video Class) support
+- Any drivers your capture card's manufacturer recommends installed first
 
-```md
-src/
- ├─ main.rs              ← entry point; init logger, load settings, start eframe
- ├─ app.rs               ← core App struct; implements eframe::App
- ├─ state.rs             ← AppState enum and transitions
- ├─ settings.rs          ← Settings struct; load, save, deserialize
- ├─ logger.rs            ← Simplelog initialization
- ├─ errors.rs            ← app-wide error types
- ├─ video.rs             ← video thread; grab frames, decode to RGB, send to GUI
- │
- ├─ ui/
- │   ├─ mod.rs           ← dispatches rendering based on current AppState
- │   ├─ initial_view.rs  ← first-launch settings picker
- │   ├─ loading_view.rs  ← loading screen while searching for devices
- │   ├─ playing_view.rs  ← main view; displays video frames
- │   ├─ settings_view.rs ← settings overlay
- │   └─ error_view.rs    ← error display
- │
- └─ audio/
-     ├─ mod.rs           ← declares and re-exports the audio submodules
-     ├─ config.rs        ← AudioConfig struct; device names, volume, output selection
-     ├─ io.rs            ← device discovery; find input/output devices from config
-     ├─ processing.rs    ← resampling, channel conversion, volume scaling
-     └─ playback.rs      ← creates streams, owns ring buffer, runs input→output loop
+---
 
+## Installation
+
+Run `CaptureCardViewer-Setup.exe` and follow the on-screen prompts. A shortcut will be added to your Start Menu.
+
+---
+
+## First Launch
+
+On first launch you will be asked to select your devices:
+
+- **Video Input** — usually listed as "USB Video", "USB Capture", or your capture card's brand name (e.g. "Elgato HD60 S", "AVerMedia Live Gamer")
+- **Audio Input** — usually shares a name with the video input device, or follows the same guidelines
+
+Click **Save** to confirm your selections and start the viewer.
+
+---
+
+## Controls
+
+|        Action         | Keybind |
+|-----------------------|---------|
+|   Toggle fullscreen   | **F11** |
+| Open / close settings |  **S**  |
+
+The window can also be closed using the **✖** button in the top-right corner (visible when not in fullscreen).
+
+---
+
+## Settings
+
+Press **S** or click **Settings** in the menu bar to open the settings panel.
+
+|     Setting      |                                     Description                                     |
+|------------------|-------------------------------------------------------------------------------------|
+| **Video Input**  |                          Your capture card's video source                           |
+| **Audio Input**  |                          Your capture card's audio source                           |
+| **Audio Output** |           Where to send the audio — defaults to your system default output          |
+|    **Volume**    | Playback volume (0× – 3×). Values above 1.0 amplify the signal; 1.5× is the default |
+
+Click **Save** to apply your changes. If a device was changed, the stream will restart automatically.
+Click **Close** to discard any unsaved changes and return to the viewer.
+
+---
+
+## Troubleshooting
+
+### No devices appear in the dropdown
+
+Make sure the capture card is connected and recognized by Windows *before* launching the app. Open Device Manager and check that it appears without errors. Try a different USB port if needed.
+
+### Stream disconnects immediately after loading
+
+Another application — such as OBS Studio, Streamlabs, or a browser — is most likely already using the capture card. Close those applications first, then go to **Settings → Save** to reconnect.
+
+### No audio coming through
+
+- Confirm the correct **Audio Output** and **Audio Input** is selected in Settings.
+- Make sure the volume slider is above zero.
+- Check that the connected source device (console, PC, etc.) is actually outputting audio to the capture card.
+
+### Black screen or frozen frame
+
+Some capture cards require an active incoming signal before they expose a stream. Make sure the source device is powered on and actively outputting video.
+
+### App won't open or crashes on startup
+
+The log file contains diagnostic information that may help identify the cause. You can find it at:
+
+```console
+%LOCALAPPDATA%\capture-card-viewer\app.log
 ```
 
-## Functionalities
+---
 
-### main.rs
+## Data & Logs
 
-- Initialize the logger (file + terminal output)
-- Query all available devices:
-- Video input devices via nokhwa
-- Audio input devices via cpal
-- Audio output devices via cpal
+All app data is stored locally at:
 
-- Load settings via `Settings::load()`
-- If `Ok` → initial state is `AppState::Loading`
-- If `Err` → initial state is `AppState::Initial`
+```console
+%LOCALAPPDATA%\capture-card-viewer\
+```
 
-- Configure and launch eframe with the resolved initial state and queried device lists
+|      File       |                          Description                          |
+|-----------------|---------------------------------------------------------------|
+| `settings.toml` | Your saved device selections, volume, and display preferences |
+|    `app.log`    |            Log output from the most recent session            |
 
-### app.rs
+Settings are saved automatically when the app closes.
+If `settings.toml` becomes corrupted for any reason, it will be reset automatically on next launch and you will be taken back to the first-launch setup screen.
 
-- `App` struct
-- `state: AppState`
-- `show_settings: bool`
-- `is_fullscreen: bool`
-- `runtime_error: Option<String>`
-- `settings: Settings`
-- `available_video_devices: Vec<String>`
-- `available_audio_inputs: Vec<(String, String)>`
-- `available_audio_outputs: Vec<(String, String)>`
-- `volume: Arc<Mutex<f32>>` — shared with audio callback for live volume updates
+---
 
-- `impl App`
-- `new(initial_state: AppState, settings: Settings, video_devices: Vec<String>, audio_inputs: Vec<(String, String)>, audio_outputs: Vec<(String, String)>) -> Self` — initializes `is_fullscreen` from `settings.fullscreen`, initializes `volume` from `settings.volume`
-
-- `impl eframe::App`
-- `logic()` — handles input and keybinds (e.g., F11 for Fullscreen, S for Settings), updating state accordingly.
-- `ui()` — main GUI loop; delegates rendering to `ui::mod`.
-
-### state.rs
-
-- `LoadingResult` struct
-- `video_rx: Receiver<RgbFrame>`
-- `video_thread: JoinHandle`
-- `audio_streams: AudioStreams`
-
-- `AppState` enum
-- `Initial`
-- `Loading { loading_rx: Receiver<Result<LoadingResult, AppError>> }`
-- `Playing { video_rx: Receiver<RgbFrame>, video_thread: JoinHandle, audio_streams: AudioStreams }`
-- `Error(String)`
-
-- `impl AppState`
-- `transition(&mut self, next: AppState)` — handles state changes; dropping the current variant automatically cleans up any handles or channels it owns
-
-### settings.rs
-
-- `Settings` struct
-- `video_input: String`
-- `audio_input: String`
-- `audio_output: String`
-- `volume: f32`
-- `fullscreen: bool`
-- `fullscreen_keybind: String`
-- `settings_keybind: String`
-
-- `impl Default`
-- `audio_output` → system default
-- `volume` → 1.5
-- `fullscreen` → false
-- `fullscreen_keybind` → `"F11"`
-- `settings_keybind` → `"S"`
-
-- `impl Settings`
-- `load() -> Result<Settings>` — locate file via `directories`, read, deserialize with `toml` + `serde`, delete and return `Err(AppError::SettingsCorrupt)` if deserialization fails
-- `save(&self) -> Result<()>` — serialize to `toml` and write to OS config dir
-
-### logger.rs
-
-- `init(data_dir: &Path) -> Result<Option<PathBuf>>`
-- Attempts to create a log file at `data_dir/app.log`
-- If file creation succeeds → initializes a `CombinedLogger` with both a `TermLogger` (Debug level) and a `WriteLogger` (Info level), returns `Ok(Some(log_path))`
-- If file creation fails → falls back to `TermLogger` only, logs a warning, returns `Ok(None)`
-- Returns `Err` only if logger initialization itself fails
-
-### errors.rs
-
-- `AppError` enum
-- `SettingsCorrupt`
-- `SettingsNotFound`
-- `SettingsSaveFailed`
-- `VideoDeviceNotFound`
-- `AudioDeviceNotFound`
-- `VideoStreamFailed`
-- `AudioStreamFailed`
-
-- `impl Display for AppError` — human readable error messages for the UI
-- `impl Error for AppError`
-
-### video.rs
-
-- `RgbFrame` type alias for the decoded frame data passed to the GUI
-- `find_video_device(name: &str) -> Result<CameraIndex>` — matches a given device name against an automatically queried list of devices via Nokwha.
-- `query_video_devices() -> Vec<String>` — query all available video input devices via nokhwa
-- `spawn_video_thread(device: CameraIndex) -> Result<(JoinHandle<()>, Receiver<RgbFrame>), AppError>` — spawns the video thread, returns the handle and receiving end of the frame channel
-- Loop: grab frame → decode to RGB → send via channel
-- Exit cleanly if channel is dropped or frame grab fails
-- Logs warnings on failed frames rather than panicking
-
-### ui/mod.rs
-
-- `render(app: &mut App, ctx: &egui::Context)` — matches on `app.state` and delegates to the appropriate view
-- `AppState::Initial` → `initial_view::render()`
-- `AppState::Loading` → `loading_view::render()`
-- `AppState::Playing` → `playing_view::render()`
-- `AppState::Error` → `error_view::render()`
-- If `app.show_settings` is true, renders `settings_view::render()` on top regardless of state
-- If `app.runtime_error` is `Some`, renders `error_view::render()` as an overlay
-
-### ui/initial_view.rs
-
-- `render(app: &mut App, ui: &mut egui::Ui)` — renders the first launch settings picker
-- Dropdown for video input, populated from `app.available_video_devices`
-- Dropdown for audio input, populated from `app.available_audio_inputs`
-- Confirm button — saves settings via `Settings::save()` and transitions to `AppState::Loading`
-
-### ui/loading_view.rs
-
-- `render(app: &mut App, ui: &mut egui::Ui)` — renders the loading screen
-- Display a status message and spinner while the setup thread is running
-- Poll `loading_rx` from `AppState::Loading` each frame for a result from the setup thread
-- If no result yet → keep showing spinner
-- If `Ok(LoadingResult)` → transition to `AppState::Playing { video_rx, video_thread, audio_streams }`
-- If `Err(AppError)` → transition to `AppState::Error` with a relevant message
-
-### ui/playing_view.rs
-
-- `render(app: &mut App, ui: &mut egui::Ui)` — renders the main video feed
-- Receives latest `RgbFrame` from the video channel and displays it
-- If `!app.is_fullscreen` → render a menu bar with a settings button that sets `app.show_settings = true`
-- If `app.runtime_error` is `Some` → render the error overlay via `error_view::render()`
-- If `app.show_settings` → render the settings overlay via `settings_view::render()`
-
-### ui/settings_view.rs
-
-- `render(app: &mut App, ui: &mut egui::Ui)` — renders the settings overlay
-- Dropdown for video input, populated from `app.available_video_devices`
-- Dropdown for audio input, populated from `app.available_audio_inputs`
-- Dropdown for audio output, populated from `app.available_audio_outputs`
-- Volume slider — writes directly to `app.volume` (`Arc<Mutex<f32>>`) for live updates
-- Keybind fields for fullscreen and settings menu — updates `app.settings` directly, takes effect immediately
-- Close button — sets `app.show_settings = false`, saves settings via `Settings::save()`
-- Apply button — if device settings changed, saves settings and transitions to `AppState::Loading` to restart streams
-
-### ui/error_view.rs
-
-- `render(app: &mut App, ui: &mut egui::Ui)` — renders error display
-- If `app.state` is `AppState::Error` → renders a full error screen with the error message, app cannot continue
-- If `app.runtime_error` is `Some` → renders a dismissible error overlay on top of the current view, sets `app.runtime_error = None` on dismiss
-
-### audio/mod.rs
-
-- Declares and re-exports the audio submodules:
-- `pub mod config`
-- `pub mod io`
-- `pub mod processing`
-- `pub mod playback`
-
-- Re-exports `playback::AudioStreams` directly for convenience, so the rest of the app can use `audio::AudioStreams`.
-
-### audio/config.rs
-
-- `AudioConfig` struct
-- `input_device: String`
-- `output_device: String`
-- `volume: Arc<Mutex<f32>>` — shared reference for live volume updates
-
-- `impl AudioConfig`
-- `from_settings(settings: &Settings, volume: Arc<Mutex<f32>>) -> Self` — constructs an `AudioConfig` from the relevant fields of `Settings`, takes the shared volume handle
-
-### audio/io.rs
-
-- `query_audio_inputs() -> Vec<String>` — query all available audio input devices via cpal
-- `query_audio_outputs() -> Vec<String>` — query all available audio output devices via cpal
-- `find_audio_input(name: &str, devices: &[String]) -> Result<Device>` — match input device name from settings against queried device list
-- `find_audio_output(name: &str, devices: &[String]) -> Result<Device>` — match output device name from settings against queried device list
-
-### audio/processing.rs
-
-- `CHUNK_SIZE: usize` — constant defining the audio chunk size
-- `Processor` struct
-- `resampler: Option<Fft<f32>>` — optional resampler, only present if input and output sample rates differ
-- `resample_buf: Vec<f32>` — intermediate buffer for resampled audio
-- `channel_buf: Vec<f32>` — intermediate buffer for channel converted audio
-- `input_channels: usize`
-- `output_channels: usize`
-
-- `impl Processor`
-- `new(input_sample_rate: u32, output_sample_rate: u32, input_channels: u16, output_channels: u16) -> Self` — initializes resampler if sample rates differ, allocates buffers
-- `needs_fixed_chunks(&self) -> bool` — returns true if resampler is active, used to determine input chunk sizing
-- `process_chunk(&mut self, input: &[f32], volume: f32) -> &[f32]` — resamples if needed, converts channels if needed, applies volume scaling, returns processed audio slice
-
-### audio/playback.rs
-
-- `AudioStreams` struct
-- `input_stream: cpal::Stream` — cpal input stream handle, kept alive for duration of `Playing`
-- `output_stream: cpal::Stream` — cpal output stream handle, kept alive for duration of `Playing`
-
-- `start_playback(config: AudioConfig) -> Result<AudioStreams>`
-- Build input and output cpal streams from `AudioConfig`
-- Create a `ringbuf` ring buffer connecting the two streams
-- Input stream callback — reads audio chunks from cpal, processes via `Processor`, writes to ring buffer
-- Output stream callback — reads from ring buffer, writes to cpal output
-- Both callbacks read volume from `config.volume` (`Arc<Mutex<f32>>`) each chunk
-- Start both streams
-- Return `AudioStreams` with both handles
+*Capture Card Viewer — © 2026 Quidque Studio*

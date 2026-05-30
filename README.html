@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Capture Card Viewer — Documentation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #14161a;
+            --surface: #1a1c21;
+            --surface-2: #1e2026;
+            --surface-3: #2a2d34;
+            --border: #2e3138;
+            --magenta: #990070;
+            --magenta-lo: rgba(153, 0, 112, 0.12);
+            --cyan: #009970;
+            --cyan-lo: rgba(0, 153, 112, 0.12);
+            --text: #e8e9ec;
+            --muted: #8a8f9a;
+            --faint: #4a4f5c;
+        }
+
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 15px;
+            line-height: 1.7;
+            min-height: 100vh;
+        }
+
+        /* Subtle grid */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0, 153, 112, 0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 153, 112, 0.025) 1px, transparent 1px);
+            background-size: 48px 48px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ── Layout ── */
+        .wrapper {
+            position: relative;
+            z-index: 1;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 64px 36px 96px;
+        }
+
+        /* ── Header ── */
+        header {
+            margin-bottom: 64px;
+            padding-bottom: 48px;
+            border-bottom: 1px solid var(--border);
+            position: relative;
+        }
+
+        header::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--magenta), transparent);
+        }
+
+        .header-eyebrow {
+            font-family: 'Oxanium', monospace;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: var(--magenta);
+            margin-bottom: 14px;
+        }
+
+        h1 {
+            font-family: 'Oxanium', monospace;
+            font-size: clamp(30px, 5vw, 44px);
+            font-weight: 700;
+            color: #f2f3f6;
+            letter-spacing: -0.5px;
+            line-height: 1.15;
+            margin-bottom: 12px;
+        }
+
+        h1 .dot {
+            color: var(--cyan);
+        }
+
+        .tagline {
+            color: var(--muted);
+            font-size: 15px;
+            font-weight: 300;
+        }
+
+        /* ── Nav pills ── */
+        nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 28px;
+        }
+
+        nav a {
+            font-family: 'Oxanium', monospace;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--muted);
+            text-decoration: none;
+            padding: 5px 12px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            transition: color 0.15s, border-color 0.15s;
+        }
+
+        nav a:hover {
+            color: var(--cyan);
+            border-color: var(--cyan);
+        }
+
+        /* ── Sections ── */
+        section {
+            margin-bottom: 56px;
+            scroll-margin-top: 24px;
+        }
+
+        h2 {
+            font-family: 'Oxanium', monospace;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--cyan);
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        h2::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        p {
+            color: var(--muted);
+            margin-bottom: 12px;
+        }
+
+        p:last-child {
+            margin-bottom: 0;
+        }
+
+        strong {
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        /* ── Requirement pills ── */
+        .req-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .req-pill {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 18px;
+            font-size: 14px;
+            color: var(--text);
+        }
+
+        .req-pill span {
+            display: block;
+            font-size: 11px;
+            color: var(--faint);
+            font-family: 'Oxanium', monospace;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+
+        /* ── Controls ── */
+        .controls-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 14px 28px;
+            align-items: center;
+        }
+
+        .kbd {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 52px;
+            padding: 7px 14px;
+            background: var(--surface-3);
+            border: 1px solid var(--border);
+            border-bottom: 2px solid var(--faint);
+            border-radius: 7px;
+            font-family: 'Oxanium', monospace;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            white-space: nowrap;
+            justify-self: start;
+        }
+
+        .ctrl-label {
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        /* ── Settings table ── */
+        .settings-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .settings-table thead tr {
+            border-bottom: 1px solid var(--border);
+        }
+
+        .settings-table th {
+            font-family: 'Oxanium', monospace;
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--faint);
+            text-align: left;
+            padding: 0 16px 14px 0;
+        }
+
+        .settings-table td {
+            padding: 14px 16px 14px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+            vertical-align: top;
+        }
+
+        .settings-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .settings-table td:first-child {
+            color: var(--text);
+            font-weight: 500;
+            width: 160px;
+            padding-right: 32px;
+        }
+
+        .settings-table td:last-child {
+            color: var(--muted);
+        }
+
+        /* ── Troubleshooting ── */
+        .trouble-item {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px 24px;
+            margin-bottom: 10px;
+            transition: border-color 0.15s;
+        }
+
+        .trouble-item:hover {
+            border-color: #3a3f4a;
+        }
+
+        .trouble-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .trouble-q {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .trouble-q::before {
+            content: '?';
+            flex-shrink: 0;
+            width: 20px;
+            height: 20px;
+            background: var(--magenta-lo);
+            border-radius: 50%;
+            font-family: 'Oxanium', monospace;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--magenta);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 1px;
+        }
+
+        .trouble-a {
+            color: var(--muted);
+            font-size: 14px;
+            padding-left: 30px;
+            margin: 0;
+        }
+
+        /* ── Path block ── */
+        .path-block {
+            background: var(--surface-3);
+            border: 1px solid var(--border);
+            border-left: 2px solid var(--magenta);
+            border-radius: 0 8px 8px 0;
+            padding: 13px 18px;
+            font-family: 'Oxanium', monospace;
+            font-size: 13px;
+            color: var(--muted);
+            margin: 16px 0 20px;
+            letter-spacing: 0.02em;
+        }
+
+        /* ── File badges ── */
+        .file-rows {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 10px 24px;
+            align-items: start;
+        }
+
+        .file-badge {
+            font-family: 'Oxanium', monospace;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--cyan);
+            background: var(--cyan-lo);
+            border: 1px solid rgba(0, 153, 112, 0.2);
+            padding: 3px 9px;
+            border-radius: 5px;
+            white-space: nowrap;
+            align-self: center;
+        }
+
+        .file-desc {
+            font-size: 14px;
+            color: var(--muted);
+            align-self: center;
+        }
+
+        /* ── Inline code ── */
+        code {
+            font-family: 'Oxanium', monospace;
+            font-size: 12px;
+            color: var(--cyan);
+            background: var(--cyan-lo);
+            padding: 1px 6px;
+            border-radius: 4px;
+        }
+
+        /* ── Footer ── */
+        footer {
+            margin-top: 72px;
+            padding-top: 28px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            color: var(--faint);
+            font-size: 13px;
+            font-family: 'Oxanium', monospace;
+            letter-spacing: 0.04em;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrapper">
+
+        <header>
+            <div class="header-eyebrow">Documentation</div>
+            <h1>Capture Card Viewer<span class="dot">.</span></h1>
+            <p class="tagline">Lightweight capture card viewer for Windows — by Quidque Studio</p>
+            <nav>
+                <a href="#requirements">Requirements</a>
+                <a href="#first-launch">First Launch</a>
+                <a href="#controls">Controls</a>
+                <a href="#settings">Settings</a>
+                <a href="#troubleshooting">Troubleshooting</a>
+                <a href="#data">Data &amp; Logs</a>
+            </nav>
+        </header>
+
+        <section id="requirements">
+            <h2>Requirements</h2>
+            <div class="req-list">
+                <div class="req-pill"><span>OS</span>Windows 10 or later (64-bit)</div>
+                <div class="req-pill"><span>Hardware</span>USB capture card with UVC support</div>
+                <div class="req-pill"><span>Drivers</span>Manufacturer drivers if required</div>
+            </div>
+        </section>
+
+        <section id="first-launch">
+            <h2>First Launch</h2>
+            <p>On first launch you will be asked to select your devices before anything starts.</p>
+            <p>
+                <strong>Video Input</strong> — usually listed as "USB Video", "USB Capture", or your capture card's
+                brand name (e.g. "Elgato HD60 S", "AVerMedia Live Gamer").<br>
+                <strong>Audio Input</strong> — usually shares the same name as the video input, or follows the same guidelines.
+            </p>
+            <p>Click <strong>Save</strong> to confirm your selections. The viewer will start immediately.</p>
+        </section>
+
+        <section id="controls">
+            <h2>Controls</h2>
+            <div class="controls-grid">
+                <span class="kbd">F11</span>
+                <span class="ctrl-label">Toggle fullscreen</span>
+                <span class="kbd">S</span>
+                <span class="ctrl-label">Open / close settings</span>
+            </div>
+        </section>
+
+        <section id="settings">
+            <h2>Settings</h2>
+            <p>Press <strong>S</strong> or click <strong>Settings</strong> in the menu bar to open the settings panel.
+            </p>
+            <table class="settings-table">
+                <thead>
+                    <tr>
+                        <th>Setting</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Video Input</td>
+                        <td>Your capture card's video source</td>
+                    </tr>
+                    <tr>
+                        <td>Audio Input</td>
+                        <td>Your capture card's audio source</td>
+                    </tr>
+                    <tr>
+                        <td>Audio Output</td>
+                        <td>Where to send audio. Leave as <em>System Default</em> unless you need a specific output
+                            device</td>
+                    </tr>
+                    <tr>
+                        <td>Volume</td>
+                        <td>Playback volume from 0× to 3×. Values above 1.0 amplify the incoming signal — the default is
+                            1.5×</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p style="margin-top: 18px;">Click <strong>Save</strong> to apply. If you changed a device, the stream
+                restarts automatically. Click <strong>Close</strong> to discard any changes.</p>
+        </section>
+
+        <section id="troubleshooting">
+            <h2>Troubleshooting</h2>
+
+            <div class="trouble-item">
+                <div class="trouble-q">No devices appear in the dropdown</div>
+                <p class="trouble-a">Make sure the capture card is connected before launching. Open Device Manager and
+                    check it appears without errors. Try a different USB port if needed.</p>
+            </div>
+
+            <div class="trouble-item">
+                <div class="trouble-q">Stream disconnects immediately after loading</div>
+                <p class="trouble-a">Another application such as OBS Studio or a browser is most likely already using
+                    the device. Close it, then go to <strong>Settings → Save</strong> to reconnect.</p>
+            </div>
+
+            <div class="trouble-item">
+                <div class="trouble-q">No audio coming through</div>
+                <p class="trouble-a">Confirm the correct <strong>Audio Output</strong> is selected in Settings, that the
+                    volume slider is above zero, and that the source device is actively sending audio to the capture
+                    card.</p>
+            </div>
+
+            <div class="trouble-item">
+                <div class="trouble-q">Black screen or frozen frame</div>
+                <p class="trouble-a">Some capture cards require an active incoming signal. Ensure the source device is
+                    powered on and outputting video to the capture card.</p>
+            </div>
+        </section>
+
+        <section id="data">
+            <h2>Data &amp; Logs</h2>
+            <p>All app data is stored locally at:</p>
+            <div class="path-block">%LOCALAPPDATA%\capture-card-viewer\</div>
+            <div class="file-rows">
+                <span class="file-badge">settings.toml</span>
+                <span class="file-desc">Device selections, volume, and display preferences</span>
+                <span class="file-badge">app.log</span>
+                <span class="file-desc">Log output from the most recent session</span>
+            </div>
+            <p style="margin-top: 20px;">Settings are saved automatically when the app closes. If
+                <code>settings.toml</code> becomes corrupt, it will be deleted and reset automatically — the setup
+                screen will appear on next launch.</p>
+        </section>
+
+        <footer>
+            <span>Capture Card Viewer</span>
+            <span>© 2026 Quidque Studio</span>
+        </footer>
+
+    </div>
+</body>
+
+</html>
