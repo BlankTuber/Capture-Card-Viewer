@@ -8,54 +8,63 @@ use eframe::egui;
 
 use crate::{settings::Settings, state::AppState, ui, video::RgbFrame};
 
+pub struct DeviceLists {
+    pub video: Vec<String>,
+    pub audio_inputs: Vec<(String, String)>,
+    pub audio_outputs: Vec<(String, String)>,
+    pub audio_output_default: Option<String>,
+}
+
+pub struct VideoChannel {
+    pub latest_frame: Arc<ArcSwapOption<RgbFrame>>,
+    pub repaint_ctx: Arc<OnceLock<egui::Context>>,
+}
+
+impl VideoChannel {
+    pub fn new() -> Self {
+        Self {
+            latest_frame: Arc::new(ArcSwapOption::empty()),
+            repaint_ctx: Arc::new(OnceLock::new()),
+        }
+    }
+}
+
 pub struct App {
     pub state: AppState,
-    pub show_settings: bool,
-    pub is_fullscreen: bool,
-    pub runtime_error: Option<String>,
     pub settings: Settings,
-    pub available_video_devices: Vec<String>,
-    pub available_audio_inputs: Vec<(String, String)>,
-    pub available_audio_outputs: Vec<(String, String)>,
+    pub settings_snapshot: Option<Settings>,
+    pub devices: DeviceLists,
+    pub video: VideoChannel,
     pub volume: Arc<Mutex<f32>>,
     pub data_dir: PathBuf,
     pub current_frame: Option<egui::TextureHandle>,
-    pub latest_frame: Arc<ArcSwapOption<RgbFrame>>,
-    pub repaint_ctx: Arc<OnceLock<egui::Context>>,
-    pub default_audio_output_id: Option<String>,
-    pub settings_snapshot: Option<Settings>,
+    pub show_settings: bool,
+    pub is_fullscreen: bool,
+    pub runtime_error: Option<String>,
 }
 
 pub struct AppInit {
     pub settings: Settings,
-    pub video_devices: Vec<String>,
-    pub audio_inputs: Vec<(String, String)>,
-    pub audio_outputs: Vec<(String, String)>,
+    pub devices: DeviceLists,
+    pub video: VideoChannel,
     pub volume: Arc<Mutex<f32>>,
     pub data_dir: PathBuf,
-    pub latest_frame: Arc<ArcSwapOption<RgbFrame>>,
-    pub repaint_ctx: Arc<OnceLock<egui::Context>>,
-    pub default_audio_output_id: Option<String>,
 }
 
 impl App {
     pub fn new(initial_state: AppState, init: AppInit) -> Self {
         Self {
-            state: initial_state,
+            current_frame: None,
             show_settings: false,
             is_fullscreen: init.settings.fullscreen,
             runtime_error: None,
+            state: initial_state,
             settings: init.settings,
-            available_video_devices: init.video_devices,
-            available_audio_inputs: init.audio_inputs,
-            available_audio_outputs: init.audio_outputs,
+            settings_snapshot: None,
+            devices: init.devices,
+            video: init.video,
             volume: init.volume,
             data_dir: init.data_dir,
-            current_frame: None,
-            latest_frame: init.latest_frame,
-            repaint_ctx: init.repaint_ctx,
-            default_audio_output_id: init.default_audio_output_id,
-            settings_snapshot: None,
         }
     }
 
@@ -109,7 +118,7 @@ impl App {
 
 impl eframe::App for App {
     fn logic(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
-        self.repaint_ctx.get_or_init(|| ctx.clone());
+        self.video.repaint_ctx.get_or_init(|| ctx.clone());
         let current_fullscreen = ctx.input(|i| i.viewport().fullscreen.unwrap_or(false));
         let current_maximized = ctx.input(|i| i.viewport().maximized.unwrap_or(false));
 

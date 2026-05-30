@@ -56,7 +56,7 @@ pub fn render(app: &mut App, ui: &mut egui::Ui) {
                     .width(combo_width)
                     .selected_text(egui::RichText::new(&selected_video).size(combo_text_size))
                     .show_ui(ui, |ui| {
-                        for device in &app.available_video_devices {
+                        for device in &app.devices.video {
                             if ui
                                 .selectable_value(&mut selected_video, device.clone(), device)
                                 .clicked()
@@ -87,7 +87,8 @@ pub fn render(app: &mut App, ui: &mut egui::Ui) {
 
                 if let Some(saved_audio_id) = &app.settings.audio_input
                     && let Some((name, _)) = app
-                        .available_audio_inputs
+                        .devices
+                        .audio_inputs
                         .iter()
                         .find(|(_, id)| id == saved_audio_id)
                 {
@@ -98,7 +99,7 @@ pub fn render(app: &mut App, ui: &mut egui::Ui) {
                     .width(combo_width)
                     .selected_text(egui::RichText::new(&selected_audio).size(combo_text_size))
                     .show_ui(ui, |ui| {
-                        for (name, id) in &app.available_audio_inputs {
+                        for (name, id) in &app.devices.audio_inputs {
                             if ui
                                 .selectable_value(&mut selected_audio, name.clone(), name)
                                 .clicked()
@@ -142,13 +143,15 @@ pub fn render(app: &mut App, ui: &mut egui::Ui) {
                 log::info!("Continiuing to loading state");
                 let (loading_state, volume_mutex) = start_loading(
                     &app.settings,
-                    app.latest_frame.clone(),
-                    app.repaint_ctx.clone(),
+                    app.video.latest_frame.clone(),
+                    app.video.repaint_ctx.clone(),
                 );
                 if let Err(e) = app.settings.save(&app.data_dir) {
                     log::error!("Failed to save settings: {e}");
                     app.runtime_error = Some(AppError::SettingsSaveFailed.to_string());
                 }
+                app.video.latest_frame.store(None);
+                app.current_frame = None;
                 app.state.transition(loading_state);
                 app.volume = volume_mutex;
             }

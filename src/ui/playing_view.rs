@@ -1,9 +1,25 @@
+use std::sync::atomic::Ordering;
+
 use eframe::egui;
 
-use crate::app::App;
+use crate::{app::App, state::AppState};
 
 pub fn render(app: &mut App, ui: &mut egui::Ui) {
-    if let Some(frame) = app.latest_frame.swap(None) {
+    if let AppState::Playing {
+        video_thread,
+        stop_flag,
+        ..
+    } = &app.state
+        && video_thread.is_finished()
+        && !stop_flag.load(Ordering::Relaxed)
+    {
+        app.runtime_error = Some(
+            "Video stream disconnected. Update device in settings, or restart the app, to reconnect."
+                .to_string(),
+        );
+    }
+
+    if let Some(frame) = app.video.latest_frame.swap(None) {
         let (w, h, data) = &*frame;
         let color_image = egui::ColorImage::from_rgb([*w as usize, *h as usize], data);
 

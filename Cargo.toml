@@ -2,13 +2,18 @@
 name = "capture-card-viewer"
 version = "0.1.0"
 edition = "2024"
+build = "build.rs"
+authors = ["Quidque Studio"]
 
 [dependencies]
 anyhow = "1.0.102"
 arc-swap = "1.9.1"
 cpal = "0.17.3"
 directories = "6.0.0"
-eframe = "0.34.2"
+eframe = { version = "0.34.2", default-features = false, features = [
+    "wgpu",
+    "default_fonts",
+] }
 log = "0.4.29"
 nokhwa = { version = "0.10.10", features = ["input-native"] }
 ringbuf = "0.5.0"
@@ -16,3 +21,17 @@ rubato = "3.0.0"
 serde = { version = "1.0.228", features = ["derive"] }
 simplelog = "0.12.2"
 toml = "1.1.2"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+
+[build-dependencies]
+winresource = "0.1.31"
+
+[package.metadata.winresource]
+ProductName = "Capture Card Viewer"
+FileDescription = "Capture Card Viewer by Quidque Studio"
+LegalCopyright = "© 2026 Quidque Studio"

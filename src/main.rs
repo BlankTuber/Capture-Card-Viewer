@@ -1,22 +1,30 @@
+#![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
+#[cfg(windows)]
+#[unsafe(no_mangle)]
+pub static NvOptimusEnablement: u32 = 1;
+
+#[cfg(windows)]
+#[unsafe(no_mangle)]
+pub static AmdPowerXpressRequestHighPerformance: i32 = 1;
+
 use std::{
     fs::create_dir_all,
     path::PathBuf,
-    sync::{Arc, Mutex, OnceLock},
+    sync::{Arc, Mutex},
 };
 
 use anyhow::Context;
-use arc_swap::ArcSwapOption;
 use cpal::traits::{DeviceTrait, HostTrait};
 use directories::BaseDirs;
 use eframe::egui;
 
 use crate::{
-    app::{App, AppInit},
+    app::{App, AppInit, DeviceLists, VideoChannel},
     audio::io::{query_audio_inputs, query_audio_outputs},
     errors::fatal_error,
     settings::Settings,
     state::{AppState, start_loading},
-    video::{RgbFrame, query_video_devices},
+    video::query_video_devices,
 };
 
 mod app;
@@ -54,31 +62,31 @@ fn main() {
     );
 
     let host = cpal::default_host();
-    let video_devices = query_video_devices();
-    let audio_inputs = query_audio_inputs(&host);
-    let audio_outputs = query_audio_outputs(&host);
-    let default_audio_output_id = host
-        .default_output_device()
-        .and_then(|d| d.id().ok())
-        .map(|id| id.to_string());
+    let devices = DeviceLists {
+        video: query_video_devices(),
+        audio_inputs: query_audio_inputs(&host),
+        audio_outputs: query_audio_outputs(&host),
+        audio_output_default: host
+            .default_output_device()
+            .and_then(|d| d.id().ok())
+            .map(|id| id.to_string()),
+    };
 
-    let latest_frame: Arc<ArcSwapOption<RgbFrame>> = Arc::new(ArcSwapOption::empty());
-    let repaint_ctx: Arc<OnceLock<egui::Context>> = Arc::new(OnceLock::new());
+    let video = VideoChannel::new();
 
     let app = match Settings::load(&data_dir) {
         Ok(settings) => {
-            let (app_state, volume) =
-                start_loading(&settings, latest_frame.clone(), repaint_ctx.clone());
+            let (app_state, volume) = start_loading(
+                &settings,
+                video.latest_frame.clone(),
+                video.repaint_ctx.clone(),
+            );
             let init = AppInit {
                 settings,
-                video_devices,
-                audio_inputs,
-                audio_outputs,
+                devices,
+                video,
                 volume,
                 data_dir,
-                latest_frame,
-                repaint_ctx,
-                default_audio_output_id,
             };
 
             App::new(app_state, init)
@@ -88,14 +96,10 @@ fn main() {
             let volume = Arc::new(Mutex::new(settings.volume));
             let init = AppInit {
                 settings,
-                video_devices,
-                audio_inputs,
-                audio_outputs,
+                devices,
+                video,
                 volume,
                 data_dir,
-                latest_frame,
-                repaint_ctx,
-                default_audio_output_id,
             };
 
             App::new(AppState::Initial, init)

@@ -42,7 +42,7 @@ impl AppState {
         if let AppState::Playing { stop_flag, .. } = &*self {
             stop_flag.store(true, Ordering::Relaxed);
         }
-        *self = next
+        *self = next;
     }
 }
 

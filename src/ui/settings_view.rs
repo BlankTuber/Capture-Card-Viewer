@@ -77,7 +77,7 @@ pub fn render(app: &mut App, ctx: &egui::Context) {
                         .width(combo_width)
                         .selected_text(egui::RichText::new(&selected_video).size(body_size))
                         .show_ui(ui, |ui| {
-                            for device in &app.available_video_devices {
+                            for device in &app.devices.video {
                                 if ui
                                     .selectable_value(&mut selected_video, device.clone(), device)
                                     .clicked()
@@ -96,7 +96,8 @@ pub fn render(app: &mut App, ctx: &egui::Context) {
 
                     if let Some(saved_id) = &app.settings.audio_input
                         && let Some((name, _)) = app
-                            .available_audio_inputs
+                            .devices
+                            .audio_inputs
                             .iter()
                             .find(|(_, id)| id == saved_id)
                     {
@@ -107,7 +108,7 @@ pub fn render(app: &mut App, ctx: &egui::Context) {
                         .width(combo_width)
                         .selected_text(egui::RichText::new(&selected_audio_in_name).size(body_size))
                         .show_ui(ui, |ui| {
-                            for (name, id) in &app.available_audio_inputs {
+                            for (name, id) in &app.devices.audio_inputs {
                                 if ui
                                     .selectable_value(
                                         &mut selected_audio_in_name,
@@ -133,7 +134,8 @@ pub fn render(app: &mut App, ctx: &egui::Context) {
                     let selected_audio_out_name = if app.settings.audio_output.is_empty() {
                         "Use System Default".to_string()
                     } else {
-                        app.available_audio_outputs
+                        app.devices
+                            .audio_outputs
                             .iter()
                             .find(|(_, id)| *id == app.settings.audio_output)
                             .map(|(name, _)| name.clone())
@@ -152,10 +154,10 @@ pub fn render(app: &mut App, ctx: &egui::Context) {
                                 "Use System Default",
                             );
 
-                            for (name, id) in &app.available_audio_outputs {
+                            for (name, id) in &app.devices.audio_outputs {
                                 let mut label = name.clone();
 
-                                if let Some(default_id) = &app.default_audio_output_id
+                                if let Some(default_id) = &app.devices.audio_output_default
                                     && default_id == id.as_str()
                                 {
                                     label.push_str(" (Default)");
@@ -271,9 +273,11 @@ pub fn render(app: &mut App, ctx: &egui::Context) {
                     {
                         let (loading_state, volume) = start_loading(
                             &app.settings,
-                            app.latest_frame.clone(),
-                            app.repaint_ctx.clone(),
+                            app.video.latest_frame.clone(),
+                            app.video.repaint_ctx.clone(),
                         );
+                        app.video.latest_frame.store(None);
+                        app.current_frame = None;
                         app.state.transition(loading_state);
                         app.volume = volume;
                     }
