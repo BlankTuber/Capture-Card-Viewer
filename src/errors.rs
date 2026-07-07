@@ -40,6 +40,34 @@ impl Display for AppError {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Severity {
+    Info,
+    Error,
+}
+
+#[derive(Debug, Clone)]
+pub struct RuntimeNotice {
+    pub message: String,
+    pub severity: Severity,
+}
+
+impl RuntimeNotice {
+    pub fn error(message: impl Into<String>) -> Self {
+        Self { message: message.into(), severity: Severity::Error }
+    }
+
+    pub fn info(message: impl Into<String>) -> Self {
+        Self { message: message.into(), severity: Severity::Info }
+    }
+}
+
+impl From<AppError> for RuntimeNotice {
+    fn from(err: AppError) -> Self {
+        RuntimeNotice::error(err.to_string())
+    }
+}
+
 pub fn fatal_error(msg: &str) -> ! {
     #[cfg(windows)]
     {

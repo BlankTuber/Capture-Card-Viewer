@@ -61,12 +61,11 @@ impl Processor {
         self.resampler.is_some()
     }
 
-    pub fn process_chunk(&mut self, input: &[f32], volume: f32) -> &[f32] {
+    pub fn process_chunk(&mut self, input: &[f32], volume: f32) -> Option<&[f32]> {
         let input_frames = input.len() / self.input_channels;
         let in_channels = self.input_channels;
         let out_channels = self.output_channels;
 
-        // Stage 1: Resample
         let (resampled_data, frame_count) = if let Some(ref mut r) = self.resampler {
             let output_frames = r.output_frames_next();
 
@@ -87,7 +86,7 @@ impl Processor {
                     Ok(result) => result,
                     Err(e) => {
                         log::warn!("Resampling failed: {e}");
-                        return &self.channel_buf[..0];
+                        return None;
                     }
                 };
 
@@ -106,13 +105,12 @@ impl Processor {
             for sample in &mut self.channel_buf[..len] {
                 *sample *= volume;
             }
-            return &self.channel_buf[..len];
+            return Some(&self.channel_buf[..len]);
         }
 
         for frame in 0..frame_count {
             let in_start = frame * in_channels;
             let out_start = frame * out_channels;
-
             for out_ch in 0..out_channels {
                 let sample = match (in_channels, out_channels) {
                     (2, 1) => (resampled_data[in_start] + resampled_data[in_start + 1]) * 0.5,
@@ -126,6 +124,6 @@ impl Processor {
             *sample *= volume;
         }
 
-        &self.channel_buf[..frame_count * out_channels]
+        Some(&self.channel_buf[..frame_count * out_channels])
     }
 }

@@ -31,6 +31,7 @@ mod app;
 mod audio;
 mod errors;
 mod logger;
+mod power;
 mod settings;
 mod state;
 mod ui;

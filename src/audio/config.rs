@@ -4,6 +4,7 @@ use cpal::{Device, StreamConfig, traits::DeviceTrait};
 
 use crate::errors::AppError;
 
+#[derive(Clone)]
 pub struct AudioConfig {
     pub input_device: String,
     pub output_device: String,

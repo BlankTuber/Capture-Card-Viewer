@@ -1,20 +1,25 @@
-use std::sync::atomic::Ordering;
-
 use eframe::egui;
 
-use crate::{app::App, state::AppState};
+use crate::{app::App, errors::RuntimeNotice, state::AppState};
 
 pub fn render(app: &mut App, ui: &mut egui::Ui) {
     if let AppState::Playing {
-        video_thread,
-        stop_flag,
-        ..
+        video_supervisor,
+        audio_supervisor,
+        stop_flag: _,
     } = &app.state
-        && video_thread.is_finished()
-        && !stop_flag.load(Ordering::Relaxed)
-        && app.runtime_error.is_none()
     {
-        app.runtime_error = Some("Video stream disconnected. ...".to_string());
+        if let Some(notice) = video_supervisor.take_notice()
+            && app.runtime_error.is_none()
+        {
+            app.runtime_error = Some(RuntimeNotice::info(notice));
+        }
+
+        if let Some(notice) = audio_supervisor.take_notice()
+            && app.runtime_error.is_none()
+        {
+            app.runtime_error = Some(RuntimeNotice::info(notice));
+        }
     }
 
     if let Some(frame) = app.video.latest_frame.swap(None) {

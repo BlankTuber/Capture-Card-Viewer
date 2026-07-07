@@ -84,6 +84,16 @@ The log file contains diagnostic information that may help identify the cause. Y
 %LOCALAPPDATA%\capture-card-viewer\app.log
 ```
 
+If the app crashes unexpectedly while running, you'll now see a message box explaining that, and the crash will be recorded in the log.
+
+### Audio cuts out but video keeps working
+
+The app watches for this and will automatically try to reconnect the audio stream in the background within a few seconds. You'll see a small "Audio reconnected automatically" notice in the corner when it happens. If it keeps happening repeatedly, it's worth trying to re-plug the capture card.
+
+### The app is stuck on the error screen
+
+The error screen now has a **Reset Settings** button, which clears your saved device selections and takes you back to the first-launch setup screen. This doesn't touch your log file.
+
 ---
 
 ## Data & Logs
@@ -97,10 +107,10 @@ All app data is stored locally at:
 |      File       |                          Description                          |
 |-----------------|---------------------------------------------------------------|
 | `settings.toml` | Your saved device selections, volume, and display preferences |
-|    `app.log`    |            Log output from the most recent session            |
+|    `app.log`    |                 Log output from the current run               |
 
 Settings are saved automatically when the app closes.
-If `settings.toml` becomes corrupted for any reason, it will be reset automatically on next launch and you will be taken back to the first-launch setup screen.
+If `settings.toml` becomes corrupted for any reason, it will be reset automatically on next launch and you will be taken back to the first-launch setup screen. You can also reset it manually at any time from the error screen's **Reset Settings** button.
 
 ---
 

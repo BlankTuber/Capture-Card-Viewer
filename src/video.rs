@@ -1,9 +1,10 @@
 use std::{
     sync::{
-        Arc, OnceLock,
+        Arc, Mutex, OnceLock,
         atomic::{AtomicBool, Ordering},
     },
     thread::{self, JoinHandle},
+    time::Duration,
 };
 
 use arc_swap::ArcSwapOption;
@@ -47,7 +48,7 @@ pub fn find_video_device(
         .ok_or(AppError::VideoDeviceNotFound)
 }
 
-pub fn spawn_video_thread(
+fn spawn_video_stream(
     device: CameraIndex,
     latest_frame: Arc<ArcSwapOption<RgbFrame>>,
     stop: Arc<AtomicBool>,
@@ -123,5 +124,113 @@ fn classify_camera_error(msg: &str) -> AppError {
         AppError::VideoDeviceInUse
     } else {
         AppError::VideoStreamFailed
+    }
+}
+
+pub struct VideoSupervisor {
+    current: Arc<Mutex<Option<JoinHandle<()>>>>,
+    stream_stop: Arc<AtomicBool>,
+    watchdog_stop: Arc<AtomicBool>,
+    watchdog: Option<JoinHandle<()>>,
+    notice: Arc<Mutex<Option<String>>>,
+}
+
+impl VideoSupervisor {
+    pub fn start(
+        device: CameraIndex,
+        latest_frame: Arc<ArcSwapOption<RgbFrame>>,
+        repaint_ctx: Arc<OnceLock<egui::Context>>,
+    ) -> Result<Self, AppError> {
+        let stream_stop = Arc::new(AtomicBool::new(false));
+
+        let handle = spawn_video_stream(
+            device.clone(),
+            latest_frame.clone(),
+            stream_stop.clone(),
+            repaint_ctx.clone(),
+        )?;
+
+        let current = Arc::new(Mutex::new(Some(handle)));
+        let watchdog_stop = Arc::new(AtomicBool::new(false));
+        let notice: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
+
+        let current_clone = current.clone();
+        let watchdog_stop_clone = watchdog_stop.clone();
+        let notice_clone = notice.clone();
+        let stream_stop_clone = stream_stop.clone();
+
+        let watchdog = thread::spawn(move || {
+            let mut backoff = Duration::from_secs(1);
+            const MAX_BACKOFF: Duration = Duration::from_secs(10);
+
+            loop {
+                thread::sleep(Duration::from_millis(500));
+                if watchdog_stop_clone.load(Ordering::Relaxed) {
+                    break;
+                }
+
+                let needs_restart = match &*current_clone.lock().unwrap() {
+                    None => true,
+                    Some(handle) => handle.is_finished(),
+                };
+
+                if !needs_restart {
+                    backoff = Duration::from_secs(1);
+                    continue;
+                }
+
+                log::warn!(
+                    "Video stream ended unexpectedly (camera unplugged?); \
+                     attempting to reconnect..."
+                );
+
+                *current_clone.lock().unwrap() = None;
+
+                match spawn_video_stream(
+                    device.clone(),
+                    latest_frame.clone(),
+                    stream_stop_clone.clone(),
+                    repaint_ctx.clone(),
+                ) {
+                    Ok(new_handle) => {
+                        *current_clone.lock().unwrap() = Some(new_handle);
+                        log::info!("Video stream reconnected automatically.");
+                        *notice_clone.lock().unwrap() =
+                            Some("Video reconnected automatically.".to_string());
+                        backoff = Duration::from_secs(1);
+                    }
+                    Err(e) => {
+                        log::warn!("Automatic video reconnect failed: {e}. Will retry.");
+                        *notice_clone.lock().unwrap() =
+                            Some(format!("Video reconnect failed: {e}. Retrying..."));
+                        backoff = (backoff * 2).min(MAX_BACKOFF);
+                        thread::sleep(backoff);
+                    }
+                }
+            }
+        });
+
+        Ok(Self {
+            current,
+            stream_stop,
+            watchdog_stop,
+            watchdog: Some(watchdog),
+            notice,
+        })
+    }
+
+    pub fn take_notice(&self) -> Option<String> {
+        self.notice.lock().unwrap().take()
+    }
+}
+
+impl Drop for VideoSupervisor {
+    fn drop(&mut self) {
+        self.watchdog_stop.store(true, Ordering::Relaxed);
+        self.stream_stop.store(true, Ordering::Relaxed);
+
+        *self.current.lock().unwrap() = None;
+
+        self.watchdog.take();
     }
 }

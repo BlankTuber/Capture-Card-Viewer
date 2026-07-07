@@ -138,9 +138,9 @@ pub fn render(app: &mut App, ui: &mut egui::Ui) {
         if save_btn.clicked() {
             if app.settings.video_input.is_none() || app.settings.audio_input.is_none() {
                 log::info!("Need to select all inputs!");
-                app.runtime_error = Some(AppError::MissingEntries.to_string());
+                app.runtime_error = Some(AppError::MissingEntries.into());
             } else {
-                log::info!("Continiuing to loading state");
+                log::info!("Continuing to loading state");
                 let camera_index = app
                     .settings
                     .video_input
@@ -155,7 +155,7 @@ pub fn render(app: &mut App, ui: &mut egui::Ui) {
                 );
                 if let Err(e) = app.settings.save(&app.data_dir) {
                     log::error!("Failed to save settings: {e}");
-                    app.runtime_error = Some(AppError::SettingsSaveFailed.to_string());
+                    app.runtime_error = Some(AppError::SettingsSaveFailed.into());
                 }
                 app.video.latest_frame.store(None);
                 app.current_frame = None;

@@ -4,7 +4,7 @@ use std::{
         atomic::{AtomicBool, Ordering},
         mpsc::Receiver,
     },
-    thread::{self, JoinHandle},
+    thread::{self},
 };
 
 use arc_swap::ArcSwapOption;
@@ -12,15 +12,15 @@ use eframe::egui;
 use nokhwa::utils::CameraIndex;
 
 use crate::{
-    audio::{AudioStreams, config::AudioConfig},
+    audio::{AudioSupervisor, config::AudioConfig},
     errors::AppError,
     settings::Settings,
-    video::{RgbFrame, spawn_video_thread},
+    video::{RgbFrame, VideoSupervisor},
 };
 
 pub struct LoadingResult {
-    pub video_thread: JoinHandle<()>,
-    pub audio_streams: AudioStreams,
+    pub video_supervisor: VideoSupervisor,
+    pub audio_supervisor: AudioSupervisor,
     pub stop_flag: Arc<AtomicBool>,
 }
 
@@ -30,9 +30,8 @@ pub enum AppState {
         loading_rx: Receiver<Result<LoadingResult, AppError>>,
     },
     Playing {
-        video_thread: JoinHandle<()>,
-        #[allow(dead_code)]
-        audio_streams: AudioStreams,
+        video_supervisor: VideoSupervisor,
+        audio_supervisor: AudioSupervisor,
         stop_flag: Arc<AtomicBool>,
     },
     Error(String),
@@ -43,6 +42,10 @@ impl AppState {
     pub fn transition(&mut self, next: AppState) {
         if let AppState::Playing { stop_flag, .. } = &*self {
             stop_flag.store(true, Ordering::Relaxed);
+            crate::power::allow_sleep();
+        }
+        if matches!(next, AppState::Playing { .. }) {
+            crate::power::prevent_sleep();
         }
         *self = next;
     }
@@ -68,19 +71,18 @@ pub fn start_loading(
             let audio_input = audio_input.ok_or(AppError::AudioDeviceNotFound)?;
 
             let stop_flag = Arc::new(AtomicBool::new(false));
-            let video_thread =
-                spawn_video_thread(camera_index, latest_frame, stop_flag.clone(), repaint_ctx)?;
+            let video_supervisor = VideoSupervisor::start(camera_index, latest_frame, repaint_ctx)?;
 
             let audio_config = AudioConfig {
                 input_device: audio_input,
                 output_device: audio_output,
                 volume: volume_clone,
             };
-            let audio_streams = AudioStreams::start_playback(audio_config)?;
+            let audio_supervisor = AudioSupervisor::start(audio_config)?;
 
             Ok(LoadingResult {
-                video_thread,
-                audio_streams,
+                video_supervisor,
+                audio_supervisor,
                 stop_flag,
             })
         })();

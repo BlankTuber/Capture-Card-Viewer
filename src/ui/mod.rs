@@ -21,7 +21,6 @@ pub fn render(app: &mut App, ui: &mut egui::Ui) {
                         _ => {
                             let settings_btn = ui.button("Settings");
                             if settings_btn.clicked() {
-                                log::info!("Settings klikket!");
                                 app.show_settings = !app.show_settings;
                             }
                         }

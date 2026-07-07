@@ -7,7 +7,7 @@ use arc_swap::ArcSwapOption;
 use eframe::egui;
 use nokhwa::utils::CameraIndex;
 
-use crate::{settings::Settings, state::AppState, ui, video::RgbFrame};
+use crate::{errors::RuntimeNotice, settings::Settings, state::AppState, ui, video::RgbFrame};
 
 pub struct DeviceLists {
     pub video: Vec<(String, CameraIndex)>,
@@ -41,7 +41,7 @@ pub struct App {
     pub current_frame: Option<egui::TextureHandle>,
     pub show_settings: bool,
     pub is_fullscreen: bool,
-    pub runtime_error: Option<String>,
+    pub runtime_error: Option<RuntimeNotice>,
 }
 
 pub struct AppInit {
@@ -179,6 +179,8 @@ impl eframe::App for App {
 
 impl Drop for App {
     fn drop(&mut self) {
+        crate::power::allow_sleep();
+
         self.settings.fullscreen = self.is_fullscreen;
         self.settings.volume = *self.volume.lock().unwrap();
 

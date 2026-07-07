@@ -287,13 +287,13 @@ pub fn render(app: &mut App, ctx: &egui::Context) {
                     if app.settings.video_input.is_none() || app.settings.audio_input.is_none() {
                         app.settings.video_input = initial_video_input.clone();
                         app.settings.audio_input = initial_audio_input.clone();
-                        app.runtime_error = Some(AppError::MissingEntries.to_string());
+                        app.runtime_error = Some(AppError::MissingEntries.into());
                         return;
                     }
 
                     if let Err(e) = app.settings.save(&app.data_dir) {
                         log::error!("Failed to save settings: {e}");
-                        app.runtime_error = Some(AppError::SettingsSaveFailed.to_string());
+                        app.runtime_error = Some(AppError::SettingsSaveFailed.into());
                         return;
                     }
 
