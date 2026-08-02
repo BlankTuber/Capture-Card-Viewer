@@ -194,7 +194,10 @@ pub fn render(app: &mut App, ctx: &egui::Context) {
             let render_key = |ui: &mut egui::Ui, text: &str| {
                 egui::Frame::NONE
                     .fill(egui::Color32::from_rgb(35, 38, 45))
-                    .stroke(egui::Stroke::new(1.0, egui::Color32::from_rgb(80, 85, 95)))
+                    .stroke(egui::Stroke::new(
+                        1.0_f32,
+                        egui::Color32::from_rgb(80, 85, 95),
+                    ))
                     .corner_radius(4.0)
                     .inner_margin(egui::Margin::symmetric(8, 4))
                     .show(ui, |ui| {
@@ -269,7 +272,10 @@ pub fn render(app: &mut App, ctx: &egui::Context) {
                             .strong()
                             .color(egui::Color32::from_rgb(230, 230, 230)),
                     )
-                    .stroke(egui::Stroke::new(1.0, egui::Color32::from_rgb(0, 153, 112))),
+                    .stroke(egui::Stroke::new(
+                        1.0_f32,
+                        egui::Color32::from_rgb(0, 153, 112),
+                    )),
                 );
 
                 if close_btn.clicked() {

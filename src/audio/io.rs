@@ -15,14 +15,54 @@ fn query_devices(
             log::warn!("Failed to enumerate devices: {e}");
             Vec::new()
         }
-        Ok(iter) => iter
-            .filter_map(|device| {
-                let name = device.description().ok()?.name().to_string();
-                let id = device.id().ok()?.to_string();
-                Some((name, id))
-            })
-            .collect(),
+        Ok(iter) => {
+            let all: Vec<(String, String)> = iter
+                .filter_map(|device| {
+                    let name = device.description().ok()?.name().to_string();
+                    let id = device.id().ok()?.to_string();
+                    Some((name, id))
+                })
+                .collect();
+
+            dedupe_alsa_aliases(all)
+        }
     }
+}
+
+#[cfg(target_os = "linux")]
+fn dedupe_alsa_aliases(devices: Vec<(String, String)>) -> Vec<(String, String)> {
+    fn priority(id: &str) -> u8 {
+        let raw = id.strip_prefix("alsa:").unwrap_or(id);
+        let prefix = raw.split(':').next().unwrap_or(raw);
+        match prefix {
+            "pipewire" => 0,
+            "default" | "sysdefault" => 1,
+            "plughw" => 2,
+            "hw" => 3,
+            "front" => 4,
+            "iec958" => 5,
+            p if p.starts_with("surround") => 6,
+            _ => 1,
+        }
+    }
+
+    let mut best: Vec<(String, String)> = Vec::new();
+    for (name, id) in devices {
+        match best.iter_mut().find(|(n, _)| *n == name) {
+            Some(existing) => {
+                if priority(&id) < priority(&existing.1) {
+                    existing.1 = id;
+                }
+            }
+            None => best.push((name, id)),
+        }
+    }
+    best
+}
+
+#[cfg(not(target_os = "linux"))]
+fn dedupe_alsa_aliases(devices: Vec<(String, String)>) -> Vec<(String, String)> {
+    devices
 }
 
 pub fn query_audio_inputs(host: &Host) -> Vec<(String, String)> {

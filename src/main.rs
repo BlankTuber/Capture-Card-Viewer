@@ -82,22 +82,37 @@ fn main() {
                 .as_deref()
                 .and_then(|name| video::find_video_device(name, &devices.video).ok());
 
-            let (app_state, volume) = start_loading(
-                &settings,
-                camera_index,
-                video.latest_frame.clone(),
-                video.repaint_ctx.clone(),
-            );
+            let ready_to_load = camera_index.is_some() && settings.audio_input.is_some();
 
-            let init = AppInit {
-                settings,
-                devices,
-                video,
-                volume,
-                data_dir,
-            };
+            if ready_to_load {
+                let (app_state, volume) = start_loading(
+                    &settings,
+                    camera_index,
+                    video.latest_frame.clone(),
+                    video.repaint_ctx.clone(),
+                );
 
-            App::new(app_state, init)
+                let init = AppInit {
+                    settings,
+                    devices,
+                    video,
+                    volume,
+                    data_dir,
+                };
+
+                App::new(app_state, init)
+            } else {
+                let volume = Arc::new(Mutex::new(settings.volume));
+                let init = AppInit {
+                    settings,
+                    devices,
+                    video,
+                    volume,
+                    data_dir,
+                };
+
+                App::new(AppState::Initial, init)
+            }
         }
         Err(_) => {
             let settings = Settings::default();

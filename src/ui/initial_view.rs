@@ -132,7 +132,10 @@ pub fn render(app: &mut App, ui: &mut egui::Ui) {
                     .strong()
                     .color(egui::Color32::from_rgb(230, 230, 230)),
             )
-            .stroke(egui::Stroke::new(1.0, egui::Color32::from_rgb(0, 153, 112))),
+            .stroke(egui::Stroke::new(
+                1.0_f32,
+                egui::Color32::from_rgb(0, 153, 112),
+            )),
         );
 
         if save_btn.clicked() {

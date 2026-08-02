@@ -100,7 +100,7 @@ pub fn render_modal(app: &mut App, ctx: &egui::Context) {
         .show(ctx, |ui| {
             egui::Frame::NONE
                 .fill(fill)
-                .stroke(egui::Stroke::new(1.0, stroke))
+                .stroke(egui::Stroke::new(1.0_f32, stroke))
                 .corner_radius(8.0)
                 .inner_margin(12.0)
                 .show(ui, |ui| {

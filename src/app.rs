@@ -181,6 +181,11 @@ impl Drop for App {
     fn drop(&mut self) {
         crate::power::allow_sleep();
 
+        if matches!(self.state, AppState::Initial | AppState::Error(_)) {
+            log::info!("Exiting before setup completed; not saving settings.");
+            return;
+        }
+
         self.settings.fullscreen = self.is_fullscreen;
         self.settings.volume = *self.volume.lock().unwrap();
 

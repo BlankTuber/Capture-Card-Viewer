@@ -13,6 +13,8 @@ directories = "6.0.0"
 eframe = { version = "0.34.2", default-features = false, features = [
     "wgpu",
     "default_fonts",
+    "x11",
+    "wayland",
 ] }
 log = "0.4.29"
 nokhwa = { version = "0.10.10", features = ["input-native"] }
@@ -21,6 +23,9 @@ rubato = "3.0.0"
 serde = { version = "1.0.228", features = ["derive"] }
 simplelog = "0.12.2"
 toml = "1.1.2"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+v4l = "0.14"
 
 [profile.release]
 opt-level = 3
